@@ -1,0 +1,2 @@
+# node/*.sh 는 up.sh 가 이어 붙여 SSM 으로 보내는 조각이라 shebang 이 없다
+shell=bash

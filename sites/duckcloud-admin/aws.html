@@ -1,0 +1,44 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>2조 AWS</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>
+:root{--bg:#0b1020;--side:#0f172a;--panel:#111827;--line:#1f2937;--text:#e5e7eb;--mute:#94a3b8;--amber:#f59e0b;--cy:#67e8f9;--ok:#34d399;--bad:#fb7185}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+a{color:inherit;text-decoration:none}
+.top{height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0f172acc}
+.brand{font-weight:800;color:var(--amber);white-space:nowrap}.brand small{color:var(--mute);font-weight:400;margin-left:8px;font-size:12px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.pill{padding:3px 8px;border-radius:999px;border:1px solid #334155;font-size:11px}.pill.ro{border-color:#9f1239;color:#fecdd3;background:#4c0519}.pill.rw{border-color:#065f46;color:#a7f3d0;background:#022c22}
+.btn{padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;cursor:pointer}
+.wrap{display:flex;height:calc(100% - 52px)}
+nav.side{width:280px;min-width:280px;background:var(--side);border-right:1px solid var(--line);overflow-y:auto;padding:10px 8px 24px}
+details{margin:2px 0}summary{list-style:none;cursor:pointer;padding:7px 10px;border-radius:8px;font-weight:700;font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}summary:hover{background:#1e293b}summary .car{margin-left:auto;color:var(--mute);transition:transform .15s}details[open]>summary .car{transform:rotate(90deg)}
+.lv1{margin-left:12px;border-left:1px solid #1f2937;padding-left:6px}.lv2{margin-left:10px;border-left:1px dashed #1f2937;padding-left:6px}
+.item{display:block;padding:5px 10px;border-radius:7px;font-size:13px;color:#cbd5e1;cursor:pointer}.item:hover{background:#1e293b;color:#fff}
+.item.on{background:var(--amber);color:#111;font-weight:700}.item.top{font-weight:700;font-size:13px;color:#e2e8f0;padding:7px 10px;margin:2px 0}.item.off{color:#64748b;cursor:not-allowed;text-decoration:line-through}.item.off:hover{background:none;color:#64748b}.lv2 .item{font-size:12px;color:#a5b4c3}
+details.sub>summary{font-weight:600;font-size:13px;color:#cbd5e1}
+main.body{flex:1;min-width:0;position:relative}iframe{width:100%;height:100%;border:0;background:#020617;display:block}
+.crumb{position:absolute;top:0;right:0;z-index:2;display:flex;gap:6px;padding:6px}
+#menuBtn{display:none}
+@media (max-width:860px){nav.side{position:fixed;z-index:20;top:52px;bottom:0;left:0;transform:translateX(-100%);transition:transform .2s}nav.side.open{transform:none}#menuBtn{display:inline-block}.brand small{display:none}}
+.login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.login input{width:100%;padding:10px;margin-top:10px;border-radius:9px;border:1px solid #334155;background:#020617;color:#e5e7eb;font-size:15px}
+.login button{width:100%;margin-top:14px;padding:10px;border:0;border-radius:9px;background:var(--amber);font-weight:800;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:1.3em;margin-top:8px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+.k{font-size:11px;color:var(--mute)}.v{font-size:22px;font-weight:800;margin-top:4px}.s{font-size:11px;color:var(--mute);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute)}
+.ok{color:var(--ok)}.mute{color:var(--mute)}.cy{color:var(--cy)}.amb{color:var(--amber)}.bad{color:var(--bad)}h2{font-size:14px;margin:18px 0 8px}
+</style><script>(function(){var lg=/^\/_(login|otp)$/.test(location.pathname);if(lg){if(window.top!==window.self){window.top.location.href=location.href}return}var go=function(){try{window.top.location.href='/_login'}catch(e){location.href='/_login'}};var f=window.fetch;if(f&&!f.__duck){window.fetch=function(){return f.apply(this,arguments).then(function(r){if(r.status===401)go();return r})};window.fetch.__duck=1}})();</script></head><body><main style="padding:8px clamp(8px,1vw,16px) 0;height:100%;display:flex;flex-direction:column">
+<style>.tab{background:transparent;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--text);border-color:#334155}.tab.on{background:var(--amber);border-color:var(--amber);color:#111;font-weight:700}</style>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+ <b style="font-size:16px;margin-right:4px"><i class="fa-solid fa-cloud" style="color:var(--amber)"></i> 2조 AWS</b>
+ <nav style="display:flex;gap:6px;flex-wrap:wrap" aria-label="2조 AWS 화면"><button class="tab" data-u="/aws/aws-services" onclick="go(this)">기능별 설정 · 확인</button><button class="tab" data-u="/aws/presentation" onclick="go(this)">발표 준비</button><button class="tab" data-u="/aws/" onclick="go(this)">노드 · 전원 <i class='fa-solid fa-lock' style='font-size:10px;opacity:.6'></i></button><button class="tab" data-u="/aws/#billingPanel" onclick="go(this)">과금 ON/OFF <i class='fa-solid fa-lock' style='font-size:10px;opacity:.6'></i></button><button class="tab" data-u="/aws/billing-history" onclick="go(this)">과금 명세 <i class='fa-solid fa-lock' style='font-size:10px;opacity:.6'></i></button><button class="tab" data-u="/aws/aws-connection" onclick="go(this)">연결 구조 · 권한</button><button class="tab" data-u="/admin/excluded/console" onclick="go(this)">VM · 터미널 <i class='fa-solid fa-lock' style='font-size:10px;opacity:.6'></i></button></nav>
+ <span style="margin-left:auto" class="mute" title="조작 = 2조 AWS 관리자 · 부관리자 (부관리자는 과금 전체 전환 · DB 정지 제외)"><span class="pill">보기 · OTP 조작 탭은 열 때 확인</span></span>
+</div>
+<iframe id="awsf" title="2조 AWS" style="flex:1;min-height:calc(100vh - 110px);border:1px solid var(--line);border-radius:10px"></iframe>
+</main><script>
+var K='duck-aws-tab', T=document.querySelectorAll('.tab'), F=document.getElementById('awsf');
+function go(b){T.forEach(function(x){x.classList.toggle('on',x===b)});F.src=b.dataset.u;try{sessionStorage.setItem(K,b.dataset.u)}catch(e){}}
+var saved=null;try{saved=sessionStorage.getItem(K)}catch(e){}
+go(Array.prototype.find.call(T,function(x){return x.dataset.u===saved})||T[0]);
+</script></body></html>

@@ -1,0 +1,224 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DR 상세 — 1조 → DR 판정 → 2조</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>
+:root{--bg:#0b1020;--side:#0f172a;--panel:#111827;--line:#1f2937;--text:#e5e7eb;--mute:#94a3b8;--amber:#f59e0b;--cy:#67e8f9;--ok:#34d399;--bad:#fb7185}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+a{color:inherit;text-decoration:none}
+.top{height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0f172acc}
+.brand{font-weight:800;color:var(--amber);white-space:nowrap}.brand small{color:var(--mute);font-weight:400;margin-left:8px;font-size:12px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.pill{padding:3px 8px;border-radius:999px;border:1px solid #334155;font-size:11px}.pill.ro{border-color:#9f1239;color:#fecdd3;background:#4c0519}.pill.rw{border-color:#065f46;color:#a7f3d0;background:#022c22}
+.btn{padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;cursor:pointer}
+.wrap{display:flex;height:calc(100% - 52px)}
+nav.side{width:280px;min-width:280px;background:var(--side);border-right:1px solid var(--line);overflow-y:auto;padding:10px 8px 24px}
+details{margin:2px 0}summary{list-style:none;cursor:pointer;padding:7px 10px;border-radius:8px;font-weight:700;font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}summary:hover{background:#1e293b}summary .car{margin-left:auto;color:var(--mute);transition:transform .15s}details[open]>summary .car{transform:rotate(90deg)}
+.lv1{margin-left:12px;border-left:1px solid #1f2937;padding-left:6px}.lv2{margin-left:10px;border-left:1px dashed #1f2937;padding-left:6px}
+.item{display:block;padding:5px 10px;border-radius:7px;font-size:13px;color:#cbd5e1;cursor:pointer}.item:hover{background:#1e293b;color:#fff}
+.item.on{background:var(--amber);color:#111;font-weight:700}.item.top{font-weight:700;font-size:13px;color:#e2e8f0;padding:7px 10px;margin:2px 0}.item.off{color:#64748b;cursor:not-allowed;text-decoration:line-through}.item.off:hover{background:none;color:#64748b}.lv2 .item{font-size:12px;color:#a5b4c3}
+details.sub>summary{font-weight:600;font-size:13px;color:#cbd5e1}
+main.body{flex:1;min-width:0;position:relative}iframe{width:100%;height:100%;border:0;background:#020617;display:block}
+.crumb{position:absolute;top:0;right:0;z-index:2;display:flex;gap:6px;padding:6px}
+#menuBtn{display:none}
+@media (max-width:860px){nav.side{position:fixed;z-index:20;top:52px;bottom:0;left:0;transform:translateX(-100%);transition:transform .2s}nav.side.open{transform:none}#menuBtn{display:inline-block}.brand small{display:none}}
+.login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.login input{width:100%;padding:10px;margin-top:10px;border-radius:9px;border:1px solid #334155;background:#020617;color:#e5e7eb;font-size:15px}
+.login button{width:100%;margin-top:14px;padding:10px;border:0;border-radius:9px;background:var(--amber);font-weight:800;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:1.3em;margin-top:8px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+.k{font-size:11px;color:var(--mute)}.v{font-size:22px;font-weight:800;margin-top:4px}.s{font-size:11px;color:var(--mute);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute)}
+.ok{color:var(--ok)}.mute{color:var(--mute)}.cy{color:var(--cy)}.amb{color:var(--amber)}.bad{color:var(--bad)}h2{font-size:14px;margin:18px 0 8px}
+</style><script>(function(){var lg=/^\/_(login|otp)$/.test(location.pathname);if(lg){if(window.top!==window.self){window.top.location.href=location.href}return}var go=function(){try{window.top.location.href='/_login'}catch(e){location.href='/_login'}};var f=window.fetch;if(f&&!f.__duck){window.fetch=function(){return f.apply(this,arguments).then(function(r){if(r.status===401)go();return r})};window.fetch.__duck=1}})();</script></head><body><style>
+.dl{padding:18px clamp(14px,3vw,36px);max-width:1440px;margin:0 auto}
+.hd{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.hd h1{font-size:19px;margin:0}.hd .r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.st{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid currentColor}.st.ok{color:var(--ok);background:#06261c;border-color:#059669}.st.bad{color:var(--bad);background:#2d0a14;border-color:#9f1239}.st.warn{color:var(--amber);background:#281804;border-color:#b45309}
+.hd select{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:4px 8px;font:inherit;font-size:12px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:pl 1.2s infinite}.dot.p{background:#64748b;animation:none}
+@keyframes pl{50%{opacity:.25}}
+.pn{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:12px}
+.pn h2{font-size:14px;margin:0 0 10px;display:flex;gap:8px;align-items:center;color:#cbd5e1}.pn h2 .mute{font-weight:400;font-size:12px;margin-left:auto}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:12px}
+.kp div{background:#0b1222;border:1px solid #1f2937;border-radius:12px;padding:10px 12px}.kp b{display:block;font-size:18px;margin-top:3px}.kp span{font-size:11.5px;color:var(--mute)}
+#fl{width:100%;height:auto;display:block}
+svg text{font-family:inherit}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}@media (max-width:980px){.g2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:12.5px}td,th{padding:7px 8px;border-bottom:1px solid #1f2937;text-align:left;vertical-align:middle}th{color:var(--mute);font-weight:400}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--amber)}.cy{color:var(--cy)}
+.steps{list-style:none;margin:0;padding:0;counter-reset:s}.steps li{counter-increment:s;position:relative;padding:9px 10px 9px 40px;border-bottom:1px dashed #1f2937;font-size:13px}
+.steps li:last-child{border-bottom:0}
+.steps li::before{content:counter(s);position:absolute;left:8px;top:9px;width:22px;height:22px;border-radius:50%;background:#1e293b;border:1px solid #334155;color:#e5e7eb;font-size:12px;display:flex;align-items:center;justify-content:center}
+.steps li.now::before{background:var(--amber);color:#111;border-color:var(--amber);font-weight:700}.steps li.done::before{background:#059669;color:#fff;border-color:#10b981}
+.steps li .x{color:var(--mute);font-size:12px;margin-top:2px}
+.hist{margin:0;padding-left:18px;font-size:12px;color:#cbd5e1;max-height:280px;overflow-y:auto;line-height:1.7}
+</style><div class="dl">
+<div class="hd">
+  <i class="fa-solid fa-shield-heart" style="color:var(--amber);font-size:20px"></i>
+  <h1>DR 오케스트레이션 · 실시간 상세 및 동작 시나리오</h1>
+  <span class="st" id="ph">확인 중…</span>
+  <div class="r">
+    <span class="mute" style="font-size:12px"><i class="dot" id="dot"></i><span id="at">-</span></span>
+    <select id="iv" title="새로고침 주기"><option value="3000">3초</option><option value="5000" selected>5초</option><option value="15000">15초</option></select>
+    <button class="btn" id="pz" onclick="pause()">일시정지</button>
+    <button class="btn" onclick="load(1)">즉시 확인</button>
+  </div>
+</div>
+<div class="kp" id="kpi">
+  <div><span id="kl1">1조 DB 상태</span><b id="kp1" class="ok">응답 중</b></div>
+  <div><span id="kl2">2조 편성 안정성</span><b id="kp2" class="amb">확인 중…</b></div>
+  <div><span id="kl3">DB 복제 지연</span><b id="kp3" class="cy">-</b></div>
+  <div><span>자동 승격 판정 (5개 조건)</span><b id="kp4" class="warn">준비 중…</b></div>
+</div>
+<div class="pn">
+  <h2><i class="fa-solid fa-route"></i>서비스 메쉬 & DR 흐름도<span class="mute">곡선 = 복제 · 감시 · 승격 엔드포인트 · 색상 = 실시간 상태</span></h2>
+  <svg id="fl" viewBox="0 0 1200 320" role="img" aria-label="1조 온프레미스 -> DR 판정 엔진 -> 2조 AWS 흐름도"></svg>
+</div>
+<div class="g2">
+  <div class="pn">
+    <h2><i class="fa-solid fa-list-check"></i>자동 승격 판별 조건 (수치화)<span class="mute" id="cn"></span></h2>
+    <table><thead><tr><th>조건 항목</th><th>현재 측정값</th><th>기준 규칙</th><th>판정</th></tr></thead><tbody id="cr"></tbody></table>
+  </div>
+  <div class="pn">
+    <h2><i class="fa-solid fa-hourglass-half"></i>대기 중인 동작 (장애 승격 7단계 시나리오)<span class="mute">1조 DB 무응답 시 자동 진행</span></h2>
+    <ol class="steps" id="sp"></ol>
+  </div>
+</div>
+<div class="pn">
+  <h2><i class="fa-solid fa-clipboard-check"></i>2차 시험 (AWS 승격) 사전 점검<span class="mute" id="pfa">hsagent 5분마다 · 즉시: ctl bash 35_dr_drill.sh check</span></h2>
+  <div id="pfs" style="font-size:13px;margin-bottom:8px"></div>
+  <table><thead><tr><th style="width:64px">구분</th><th>항목</th><th>현재</th><th>조치</th></tr></thead><tbody id="pf"></tbody></table>
+</div>
+<div class="g2">
+  <div class="pn">
+    <h2><i class="fa-solid fa-database"></i>복제 상세 및 내부 DNS 라우팅</h2>
+    <div id="rp"></div>
+  </div>
+  <div class="pn">
+    <h2><i class="fa-solid fa-clock-rotate-left"></i>최근 DR 판정 및 편성 이력<span class="mute" id="ctl"></span></h2>
+    <ul class="hist" id="hi"></ul>
+  </div>
+</div>
+</div><script>
+const $ = id => document.getElementById(id), esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const C = {ok: '#34d399', bad: '#fb7185', warn: '#f59e0b', off: '#475569', cy: '#67e8f9', line: '#334155'};
+let PAUSED = false, timer = 0;
+
+function pause(){
+  PAUSED = !PAUSED;
+  $('pz').textContent = PAUSED ? '계속' : '일시정지';
+  $('dot').className = 'dot' + (PAUSED ? ' p' : '');
+}
+
+function box(x, y, w, h, t, s, col, bg, dash){
+  return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="12" fill="' + (bg || '#0f172a') + '" stroke="' + col + '" stroke-width="1.8"' + (dash ? ' stroke-dasharray="6 4"' : '') + '/>' +
+    '<text x="' + (x + w / 2) + '" y="' + (y + 24) + '" text-anchor="middle" fill="#f1f5f9" font-size="13.5" font-weight="700">' + esc(t) + '</text>' +
+    '<text x="' + (x + w / 2) + '" y="' + (y + 45) + '" text-anchor="middle" fill="#94a3b8" font-size="11.5">' + esc(s) + '</text>';
+}
+
+function curve(x1, y1, x2, y2, col, lab, dash){
+  const mx = (x1 + x2) / 2;
+  const d = 'M' + x1 + ',' + y1 + ' C' + mx + ',' + y1 + ' ' + mx + ',' + y2 + ' ' + x2 + ',' + y2;
+  return '<path d="' + d + '" stroke="' + col + '" stroke-width="2.2" fill="none"' + (dash ? ' stroke-dasharray="6 4"' : '') + ' marker-end="url(#a)"/>' +
+    (lab ? '<text x="' + mx + '" y="' + ((y1 + y2) / 2 - 8) + '" text-anchor="middle" fill="' + col + '" font-size="11" font-weight="600">' + esc(lab) + '</text>' : '');
+}
+
+function render(d){
+  if (!d.ok) {
+    $('ph').textContent = '조회 실패'; $('ph').className = 'st bad';
+    $('cr').innerHTML = '<tr><td colspan="4" class="bad">' + esc(d.error) + '</td></tr>';
+    return;
+  }
+  $('ph').textContent = d.phase; $('ph').className = 'st ' + d.tone;
+  const r = d.two.repl || {}, lagok = r.lag != null && r.lag <= d.rules.lag_max, rok = r.io === 'Yes' && r.sql === 'Yes';
+  const replCol = !d.two.prepared ? C.off : rok && lagok ? C.ok : C.bad, act = !!d.active;
+  const one = d.one, two = d.two;
+
+  // KPI — 기준 수치는 판정 엔진 설정에서
+  $('kl1').textContent = '1조 DB 상태 (감시 기준 ' + d.rules.failover_min + '분)';
+  $('kl2').textContent = '2조 편성 안정성 (기준 ' + d.rules.stable_min + '분)';
+  $('kl3').textContent = 'DB 복제 지연 (기준 ≤ ' + d.rules.lag_max + '초)';
+  $('kp1').textContent = one.db_ok ? '정상 응답 중' : ('무응답 ' + d.dr.down_min + '/' + d.rules.failover_min + '분');
+  $('kp1').className = one.db_ok ? 'ok' : 'bad';
+  $('kp2').textContent = two.state + (two.score != null ? ' (점수 ' + two.score + ')' : '');
+  $('kp2').className = two.prepared ? 'ok' : 'amb';
+  $('kp3').textContent = two.prepared ? (r.lag != null ? r.lag + '초 (IO ' + (r.io||'-') + '/SQL ' + (r.sql||'-') + ')' : '동기화 확인 중') : '역할 준비 필요';
+  $('kp3').className = replCol === C.ok ? 'ok' : replCol === C.bad ? 'bad' : 'mute';
+  $('kp4').textContent = (d.ready ? '승격 준비 완료' : '준비 미완료 (' + d.ready_n + '/5)') + ' · ' + (d.crit[5] ? d.crit[5].v : '자동');
+  $('kp4').className = d.ready ? 'ok' : 'warn';
+
+  // SVG Flow
+  $('fl').innerHTML = '<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>' +
+    '<text x="145" y="22" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="700">1조 온프레미스 (' + esc(one.member) + ' Active)</text>' +
+    '<text x="1055" y="22" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="700">2조 AWS (' + esc(two.member) + ' Standby Pilot Light)</text>' +
+    box(45, 40, 200, 62, '1조 웹/앱', act ? '대기 (2조 승격 중)' : '운영 활성 · 쓰기', act ? C.off : C.ok, act ? '#0b1222' : '#06261c') +
+    box(45, 200, 200, 62, '1조 DB (MySQL)', (one.db || '100.64.0.32:3306') + (one.db_ok ? ' · 정상' : ' · 무응답 ' + d.dr.down_min + '분'), one.db_ok ? C.ok : C.bad, one.db_ok ? '#06261c' : '#2d0a14') +
+    box(490, 115, 220, 78, 'DR 판정 엔진', d.controller ? (d.controller + ' · 30초마다') : 'hsagent 감시', d.tone === 'ok' ? C.ok : d.tone === 'bad' ? C.bad : C.warn, '#0f172a', true) +
+    box(955, 40, 200, 62, '2조 웹/앱', act ? '운영 활성 · 쓰기' : '파드 0개 대기 (장애 시 기동)', act ? C.ok : C.off, act ? '#06261c' : '#0b1222') +
+    box(955, 200, 200, 62, '2조 DB (MySQL)', two.prepared ? '복제본 · 읽기 전용' : '역할 승인 대기', two.prepared ? replCol : C.off, two.prepared ? (replCol === C.ok ? '#06261c' : '#2d0a14') : '#0b1222') +
+    curve(245, 230, 955, 230, replCol, two.prepared ? ('실시간 복제 · 지연 ' + (r.lag != null ? r.lag + '초' : '-') + ' · IO ' + (r.io || '-') + ' / SQL ' + (r.sql || '-')) : '복제 미연결 — 관리자 승인 필요', !two.prepared) +
+    curve(245, 215, 490, 155, one.db_ok ? C.cy : C.bad, '3306 헬스체크 (' + d.rules.failover_min + '분 무응답 → 승격 시작)', false) +
+    curve(710, 155, 955, 70, d.ready ? C.warn : C.off, d.ready ? '승격 준비 완료' : '승격 보류 (' + d.ready_n + '/5 만족)', !d.ready) +
+    curve(245, 70, 955, 70, act ? C.warn : C.off, act ? '외부 입구 (Frontdoor) → 2조로 전환' : '정상 라우팅 = 1조 (S1/S2 이중화)', !act);
+
+  // Criteria Table
+  const ic = c => c.ok === null || c.ok === undefined ? '<span class="mute">·</span>' : c.ok ? '<b class="ok">✔ 충족</b>' : '<b class="bad">✘ 미달</b>';
+  $('cr').innerHTML = d.crit.map(c => '<tr><td><b>' + esc(c.k) + '</b>' + (c.trigger ? ' <span class="mute">(트리거)</span>' : '') + '</td><td class="' + (c.ok === true ? 'ok' : c.ok === false ? 'bad' : 'mute') + '"><b>' + esc(c.v) + '</b></td><td class="mute">' + esc(c.need) + '</td><td>' + ic(c) + '</td></tr>').join('');
+  $('cn').textContent = '2조 준비 항목: ' + d.ready_n + ' / 5 완료';
+
+  // 7-step sequence (어떻게 동작하려고 대기하는지)
+  const stp = [
+    ['1조 DB ' + d.rules.failover_min + '분 연속 무응답 감시', '현재 상태: ' + (one.db_ok ? '정상 응답 중 (감시 카운터 0분)' : '무응답 ' + d.dr.down_min + '/' + d.rules.failover_min + '분 경과')],
+    ['2조 증인(Witness) 교차 검증', '2조 DB 가 1조 바이너리 로그를 아직 받고 있는지(IO Yes) 확인하여 판정 서버 네트워크 단절에 의한 오판 방지'],
+    ['옛 1조 앱 계정 잠금 시도 (Fence)', '두 곳에서 동시에 쓰지 않게 — 1조에 닿을 수 있으면 앱 계정을 잠그고, 닿지 않으면 시도만 기록'],
+    ['2조 DB 복제 데이터 동기화 완료 및 쓰기 전환', '복제 지연(현재 ' + (r.lag != null ? r.lag + '초' : '-') + ' ≤ 기준 ' + d.rules.lag_max + '초) 확인 후 read_only=OFF 로 승격'],
+    ['2조 웹/앱 파드 기동 (values-dr-active)', '서비스 파드 0 → 1 스케일업 수행 후 30800 포트 및 /readyz 200 정상 응답 확인'],
+    ['내부 DNS 및 서비스 메쉬 입구 2조 전환', 'db.duck.internal 및 frontdoor upstream 엔드포인트를 2조 AWS 노드로 즉시 전환 (S1/S2 게이트웨이 동기화)'],
+    ['1조 정상화 시 자동 복귀 (Failback)', '1조 DB 가 ' + d.rules.failback_min + '분 연속 응답 → 1조를 2조 데이터로 맞춤 → 1조 다시 운영 → 2조 다시 대기']
+  ];
+  const cur = act ? 6 : (one.db_ok ? 0 : 1);   // 발동 중이면 1~6 끝, 복귀 대기
+  $('sp').innerHTML = stp.map((s, i) => '<li class="' + (i < cur ? 'done' : i === cur ? 'now' : '') + '"><b>' + esc(s[0]) + '</b><div class="x">' + esc(s[1]) + '</div></li>').join('');
+
+  // Replication & Names Table
+  const nm = Object.entries(d.names || {}).map(([k, v]) => '<span class="mute">' + esc(k) + '</span> → <b class="cy">' + esc(v) + '</b>').join('<br>');
+  $('rp').innerHTML = '<table>' +
+    '<tr><td style="width:110px">복제 원본</td><td>' + esc(r.source || one.db || '-') + '</td></tr>' +
+    '<tr><td>2조 준비 상태</td><td>' + esc(two.ready || '-') + '</td></tr>' +
+    (r.error ? '<tr><td>복제 오류</td><td class="bad">' + esc(r.error) + '</td></tr>' : '') +
+    '<tr><td>2조 편성 평가</td><td>' + esc(two.state || '-') + (two.score != null ? ' · 종합 점수 ' + esc(two.score) + '점' : '') + '</td></tr>' +
+    '<tr><td>오케스트레이션</td><td>' + (d.job.running ? '<b class="warn">진행 중</b> ' + esc(d.job.kind || '') + ' ' + esc(d.job.step || '') : '<span class="ok">유휴 (대기 중)</span>') + (d.job.error ? ' <span class="bad">' + esc(d.job.error) + '</span>' : '') + '</td></tr>' +
+    '<tr><td>내부 DNS 매핑</td><td>' + (nm || '-') + '</td></tr>' +
+  '</table>';
+
+  // Preflight — 필수(승격 · 앱 기동) · 복귀(잠금 · 복귀 · 다시 채우기) · 참고
+  const pf = d.preflight || {}, LV = {need: '필수', warn: '복귀', info: '참고'};
+  $('pfs').innerHTML = !pf.at ? '<span class="mute">아직 점검 전 (hsagent 시작 뒤 1~5분)</span>' :
+    '<b class="' + (pf.go ? 'ok' : 'bad') + '">' + esc(pf.summary || (pf.go ? '승격 시험 가능' : '승격 시험 불가')) + '</b> <span class="mute">· ' + new Date(pf.at * 1000).toLocaleTimeString() + '</span>' +
+    (pf.error ? ' <span class="bad">' + esc(pf.error) + '</span>' : '');
+  $('pf').innerHTML = (pf.items || []).map(i => '<tr><td class="' + (i.level === 'need' ? 'warn' : 'mute') + '">' + LV[i.level] + '</td><td>' +
+    (i.ok === true ? '<b class="ok">✔</b> ' : i.ok === false ? '<b class="bad">✘</b> ' : '<span class="mute">·</span> ') + esc(i.k) +
+    '</td><td>' + esc(i.v) + '</td><td class="mute">' + esc(i.fix || '') + '</td></tr>').join('');
+
+  // History
+  $('hi').innerHTML = (d.history || []).map(h => '<li><span class="mute">' + new Date(h.at * 1000).toLocaleString() + '</span> ' + esc(h.text) + '</li>').join('') || '<li class="mute">기록 없음</li>';
+  $('ctl').textContent = d.controller || '';
+  $('at').textContent = '갱신 ' + new Date(d.at * 1000).toLocaleTimeString();
+}
+
+async function load(force){
+  try {
+    const r = await fetch('/dr/api' + (force ? '?force=1' : ''));
+    if (r.status === 401) { top.location.href = '/_login'; return; }   // 세션 만료 → 로그인
+    render(await r.json());
+  } catch (e) {
+    $('ph').textContent = '조회 실패';
+  }
+}
+
+function startLoop(){
+  if (timer) clearInterval(timer);
+  const ms = parseInt($('iv').value) || 5000;
+  timer = setInterval(() => { if (!PAUSED) load(); }, ms);
+}
+
+$('iv').addEventListener('change', startLoop);
+load();
+startLoop();
+</script></body></html>

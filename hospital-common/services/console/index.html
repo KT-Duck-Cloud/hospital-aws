@@ -1,0 +1,38 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>운영 콘솔</title><style>
+body{font-family:system-ui,-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0f172a;color:#e2e8f0;margin:0}
+main{max-width:960px;margin:0 auto;padding:32px 16px}h1{font-size:20px;margin:0 0 4px}p.sub{color:#94a3b8;margin:0 0 24px;font-size:14px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:16px;overflow-x:auto}
+label{display:block;font-size:13px;color:#94a3b8;margin:12px 0 4px}input{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:15px}
+button{margin:4px 4px 0 0;padding:6px 10px;border:0;border-radius:8px;background:#0ea5e9;color:#fff;font-size:13px;cursor:pointer}button.sec{background:#334155}button.warn{background:#b45309}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:8px 6px;border-bottom:1px solid #334155;text-align:left;vertical-align:top}
+pre{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;white-space:pre-wrap;font-size:13px}.on{color:#4ade80}.off{color:#f87171}.muted{color:#94a3b8;font-size:13px}
+.err{background:#7f1d1d;color:#fecaca;padding:10px;border-radius:8px;font-size:14px}.hide{display:none}
+</style></head><body><main><h1>운영 콘솔</h1><p class="sub">VM 전원 · 사양 · 공개 입구 S1/S2 · 공용 계정 — 모든 조작은 감사 기록에 남습니다</p>
+<div id="login" class="card hide"><label>이메일</label><input id="em" type="email" autocomplete="username"><label>비밀번호</label>
+<input id="pw" type="password" autocomplete="current-password"><button onclick="login()">로그인</button><p id="lerr" class="err hide"></p></div>
+<div id="app" class="hide"><p id="err" class="err hide"></p>
+<div class="card"><b>호스트</b> <span id="host" class="muted"></span><table id="vms"></table></div>
+<div class="card"><b>공개 입구</b><table id="entry"></table></div>
+<div class="card"><b>작업</b><pre id="jobs">-</pre></div>
+<div class="card"><b>공용 계정</b><table id="acc"></table><label>새 계정 이메일</label><input id="nem"><button onclick="act({action:'account_add',email:nem.value})">추가</button></div>
+<button class="sec" onclick="post('/api/logout',{}).then(()=>location.reload())">로그아웃</button></div></main><script>
+let csrf='';const $=id=>document.getElementById(id),E=s=>String(s??'-').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF':csrf},body:JSON.stringify(b)}).then(r=>r.json().then(j=>r.ok?j:Promise.reject(j.error)));
+const show=(el,msg)=>{el.textContent=msg;el.classList.toggle('hide',!msg)};
+async function login(){try{csrf=(await post('/api/login',{email:em.value,pw:pw.value})).csrf;boot()}catch(e){show(lerr,e)}}
+async function act(b){if(!confirm(JSON.stringify(b)))return;try{const r=await post('/api/action',b);if(r.password)alert(r.email+' 비밀번호: '+r.password);show(err,'');load()}catch(e){show(err,e)}}
+function btn(t,b,c){return `<button class="${c||''}" onclick='act(${JSON.stringify(b)})'>${t}</button>`}
+async function load(){const s=await (await fetch('/api/state')).json(),j=await (await fetch('/api/jobs')).json(),a=await (await fetch('/api/accounts')).json();
+ if(s.host)host.textContent=`${s.host.cpus} vCPU · CPU ${s.host.cpu_percent}% · 여유 ${s.host.mem_avail_mb}MB · 디스크 여유 ${s.host.disk_free_gb}GB`;
+ vms.innerHTML='<tr><th>VM</th><th>상태</th><th>사양</th><th></th></tr>'+((s.vms||{}).vms||[]).map(v=>`<tr><td><b>${E(v.name)}</b><br><span class="muted">${E(v.role)}</span></td>
+ <td class="${v.running?'on':'off'}">${v.running?'● 켜짐':'○ 꺼짐'}</td><td>${v.cpus} vCPU · ${v.mem_mb}MB · ${E(v.disk_gb)}GB</td><td>${v.protected?'<span class="muted">보호 — 상태만</span>':
+ btn(v.running?'끄기':'켜기',{action:v.running?'vm_stop':'vm_start',name:v.name},'sec')+btn('메모리 +2GB',{action:'resize',name:v.name,mem_mb:v.mem_mb+2048})}</td></tr>`).join('');
+ const en=s.entry||{};entry.innerHTML=['self','peer'].map(k=>{const x=en[k]||{};return `<tr><td><b>${E(x.role)}</b></td><td class="${x.connector_ready?'on':'off'}">${x.connector_ready?'● 받는 중':'○ 꺼짐'}</td>
+ <td class="muted">메쉬 ${x.mesh?'참여':'빠짐'} · Headscale ${x.headscale?'주 서버':'대기'}</td><td>${btn('켜기',{action:'entry_start',where:k},'sec')+btn('끄기',{action:'entry_stop',where:k},'warn')}</td></tr>`}).join('');
+ jobs.textContent=j.slice(0,3).map(x=>`${x.kind} ${E(x.args.name||'')} — ${x.running?'진행 중':x.ok?'완료':'실패'} (${x.who})\n`+x.steps.map(([t,m])=>`  ${t}s ${m}`).join('\n')).join('\n\n')||'-';
+ acc.innerHTML=a.map(x=>`<tr><td>${E(x.email)}</td><td class="${x.locked?'off':'muted'}">${x.locked?'잠김':'실패 '+x.fails}</td><td>${(x.locked?btn('잠금 해제',{action:'account_unlock',email:x.email},'sec'):'')+btn('삭제',{action:'account_remove',email:x.email},'warn')}</td></tr>`).join('');
+ show(err,(s.errors||[]).join(' · '))}
+async function boot(){const m=await (await fetch('/api/me')).json();if(!m.email)return $('login').classList.remove('hide');
+ csrf=m.csrf;$('login').classList.add('hide');$('app').classList.remove('hide');load();setInterval(load,5000)}boot();
+</script></body></html>

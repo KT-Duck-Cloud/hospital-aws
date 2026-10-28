@@ -1,0 +1,50 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DuckCloud 과금 관리 · 2단계 인증 등록</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>
+:root{--bg:#0b1020;--side:#0f172a;--panel:#111827;--line:#1f2937;--text:#e5e7eb;--mute:#94a3b8;--amber:#f59e0b;--cy:#67e8f9;--ok:#34d399;--bad:#fb7185}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+a{color:inherit;text-decoration:none}
+.top{height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0f172acc}
+.brand{font-weight:800;color:var(--amber);white-space:nowrap}.brand small{color:var(--mute);font-weight:400;margin-left:8px;font-size:12px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.pill{padding:3px 8px;border-radius:999px;border:1px solid #334155;font-size:11px}.pill.ro{border-color:#9f1239;color:#fecdd3;background:#4c0519}.pill.rw{border-color:#065f46;color:#a7f3d0;background:#022c22}
+.btn{padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;cursor:pointer}
+.wrap{display:flex;height:calc(100% - 52px)}
+nav.side{width:280px;min-width:280px;background:var(--side);border-right:1px solid var(--line);overflow-y:auto;padding:10px 8px 24px}
+details{margin:2px 0}summary{list-style:none;cursor:pointer;padding:7px 10px;border-radius:8px;font-weight:700;font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}summary:hover{background:#1e293b}summary .car{margin-left:auto;color:var(--mute);transition:transform .15s}details[open]>summary .car{transform:rotate(90deg)}
+.lv1{margin-left:12px;border-left:1px solid #1f2937;padding-left:6px}.lv2{margin-left:10px;border-left:1px dashed #1f2937;padding-left:6px}
+.item{display:block;padding:5px 10px;border-radius:7px;font-size:13px;color:#cbd5e1;cursor:pointer}.item:hover{background:#1e293b;color:#fff}
+.item.on{background:var(--amber);color:#111;font-weight:700}.item.top{font-weight:700;font-size:13px;color:#e2e8f0;padding:7px 10px;margin:2px 0}.item.off{color:#64748b;cursor:not-allowed;text-decoration:line-through}.item.off:hover{background:none;color:#64748b}.lv2 .item{font-size:12px;color:#a5b4c3}
+details.sub>summary{font-weight:600;font-size:13px;color:#cbd5e1}
+main.body{flex:1;min-width:0;position:relative}iframe{width:100%;height:100%;border:0;background:#020617;display:block}
+.crumb{position:absolute;top:0;right:0;z-index:2;display:flex;gap:6px;padding:6px}
+#menuBtn{display:none}
+@media (max-width:860px){nav.side{position:fixed;z-index:20;top:52px;bottom:0;left:0;transform:translateX(-100%);transition:transform .2s}nav.side.open{transform:none}#menuBtn{display:inline-block}.brand small{display:none}}
+.login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.login input{width:100%;padding:10px;margin-top:10px;border-radius:9px;border:1px solid #334155;background:#020617;color:#e5e7eb;font-size:15px}
+.login button{width:100%;margin-top:14px;padding:10px;border:0;border-radius:9px;background:var(--amber);font-weight:800;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:1.3em;margin-top:8px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+.k{font-size:11px;color:var(--mute)}.v{font-size:22px;font-weight:800;margin-top:4px}.s{font-size:11px;color:var(--mute);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute)}
+.ok{color:var(--ok)}.mute{color:var(--mute)}.cy{color:var(--cy)}.amb{color:var(--amber)}.bad{color:var(--bad)}h2{font-size:14px;margin:18px 0 8px}
+</style><script>(function(){var lg=/^\/_(login|otp)$/.test(location.pathname);if(lg){if(window.top!==window.self){window.top.location.href=location.href}return}var go=function(){try{window.top.location.href='/master'}catch(e){location.href='/master'}};var f=window.fetch;if(f&&!f.__duck){window.fetch=function(){return f.apply(this,arguments).then(function(r){if(r.status===401)go();return r})};window.fetch.__duck=1}})();</script></head><body>
+<form class="login" method="post" action="/master/otp" autocomplete="off"><div class="brand" style="font-size:18px">🔐 2단계 인증 등록</div>
+<div class="mute" style="font-size:12px;margin-top:4px">viewer@example.org · duckcloud-master</div><div class="mute" style="font-size:12px;margin:10px 0 6px">처음 한 번 — 인증 앱(Google · Microsoft Authenticator, 1Password 등)으로 QR 을 찍으세요</div>
+<div id="qr" style="background:#fff;padding:10px;border-radius:10px;width:220px;height:220px;margin:6px auto"></div>
+<details style="margin-top:6px"><summary class="mute" style="font-size:12px;cursor:pointer">QR 을 못 찍으면 — 키 직접 입력</summary>
+<div class="mono" style="font-family:ui-monospace,Menlo,monospace;font-size:13px;margin-top:6px;word-break:break-all">JBSW Y3DP EHPK 3PXP</div>
+<div class="mute" style="font-size:11px">계정 viewer@example.org · 시간 기반 · 6자리 · 30초</div></details>
+<input id="otpView" inputmode="numeric" autocomplete="one-time-code" autofocus placeholder="인증 앱의 6자리 코드" aria-label="인증 코드 6자리" style="letter-spacing:8px;text-align:center;font-size:22px">
+<input type="hidden" name="code" id="otpCode">
+<button>등록하고 들어가기</button><div class="err"></div>
+<div class="mute" style="font-size:11px;margin-top:10px">휴대폰을 바꿨거나 앱을 지웠으면 관리자에게 초기화 요청 — <span class="mono">python3 dashboard/admin_gate.py totp-reset &lt;이메일&gt;</span> · <a href="/master" style="text-decoration:underline">처음으로</a></div></form><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script>try{new QRCode(document.getElementById("qr"),{text:"otpauth://totp/DuckCloud%20Master:viewer%40example.org?secret=JBSWY3DPEHPK3PXP&issuer=DuckCloud%20Master&algorithm=SHA1&digits=6&period=30",width:200,height:200,correctLevel:QRCode.CorrectLevel.M})}catch(e){document.getElementById("qr").outerHTML="<div class=mute style=font-size:12px>QR 을 그리지 못함 — 아래 키를 직접 입력</div>"}</script><script>(function(){
+var v=document.getElementById('otpView'),h=document.getElementById('otpCode');if(!v||!h)return;
+function put(d){h.value=d.replace(/\D/g,'').slice(0,6);v.value='*'.repeat(h.value.length);}
+v.addEventListener('beforeinput',function(e){e.preventDefault();var t=e.inputType||'';
+ if(t.indexOf('delete')===0)put(h.value.slice(0,-1));
+ else if(e.data)put(h.value+e.data);
+ else if(e.dataTransfer)put(h.value+e.dataTransfer.getData('text'));});
+v.addEventListener('input',function(){var d=v.value.replace(/\D/g,'');if(d)put(h.value+d);else v.value='*'.repeat(h.value.length);});
+v.addEventListener('paste',function(e){e.preventDefault();put(h.value+(e.clipboardData||window.clipboardData).getData('text'));});
+v.form.addEventListener('submit',function(e){if(h.value.length!==6){e.preventDefault();v.focus();v.style.borderColor='#f87171';}});
+})();</script></body></html>

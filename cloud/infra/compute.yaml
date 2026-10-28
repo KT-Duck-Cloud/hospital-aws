@@ -1,0 +1,263 @@
+AWSTemplateFormatVersion: '2010-09-09'
+# 스택 duckcloud-compute 에 deploy.sh 로 적용 (네트워크는 기존 duckcloud-network 스택의 VPC · 서브넷을 가져다 씀)
+#   AWS 조 = 팀원 조와 같은 틀. Headscale 슬롯 8 (t8@), 메쉬 AWS 역할 (hsagent.json aws_slot "8") — 평소 꺼 둠, 과금 OFF
+#     vm1  DrControlInstance  t8-vm1 100.64.0.81  k3s 서버(마스터) · 앱(평소 0개)       기존 EC2 그대로 (교체 없음, 이름만 옛것)
+#     vm2  DbInstance         t8-vm2 100.64.0.82  MySQL 8.4 복제본 + k3s 에이전트(워커) 메쉬 '역할 준비'가 MySQL 을 넣는다
+#     추가 워커 ASG (0~2대)    VPN 에 넣지 않음 — VPC 안에서 vm1 k3s 에 붙는다. 부족할 때만 up.sh --workers N
+#   바깥에서 들어오는 포트: tailscale 직결 41641/udp 만. SSH 없음 — 노드 작업은 SSM Run Command(up.sh)
+#   공인 IP 는 켤 때 자동으로 받는다(EIP 없음). 꺼져 있을 때 과금은 EBS · S3 이미지(약 60MB) 뿐
+#   앱 이미지: S3 duckcloud-artifacts-<계정>-<리전>/images/ (put-image.sh) → 노드가 VPC S3 게이트웨이로 받아 k3s 에 넣는다
+Description: 'DuckCloud AWS site (slot 8) - vm1 k3s server + app (0 until promoted), vm2 MySQL replica + k3s agent, worker ASG 0-2, S3 image store. No EIP, no inbound except tailscale'
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: vm1 / vm2 / worker instance type (amd64 only - MySQL 8.4 official packages)
+
+  UbuntuAmiId:
+    Type: AWS::EC2::Image::Id
+    Description: Ubuntu 22.04 LTS AMI - pinned to the running instance's AMI so updates never replace it
+
+Resources:
+  DrInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: duckcloud-instance-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+        # 노드 기동에 필요한 값만 — /duckcloud/aws/ 아래 (join-key: VPN 가입 키, k3s-token · k3s-url: 워커 합류)
+        - PolicyName: duckcloud-aws-site-params
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/duckcloud/aws/*
+              - Effect: Allow
+                Action: ssm:PutParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/duckcloud/aws/k3s-token
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/duckcloud/aws/k3s-url
+        # 앱 이미지 tar 받기만 (images/ 아래)
+        - PolicyName: duckcloud-aws-site-images
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub ${ArtifactBucket.Arn}/images/*
+
+  # 앱 이미지 저장소 — 비공개 · 암호화. 노드는 VPC 의 S3 게이트웨이 엔드포인트로 받는다(전송 요금 없음)
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub duckcloud-artifacts-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: abort-incomplete-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      Tags:
+        - Key: Name
+          Value: duckcloud-artifacts
+
+  DrInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: duckcloud-instance-profile
+      Roles:
+        - !Ref DrInstanceRole
+
+  # AWS 조 노드 공용 — 서로는 전부(k3s · MySQL · flannel), 바깥은 tailscale 직결만
+  AwsSiteSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: DuckCloud AWS site nodes - all traffic between members, only tailscale direct from outside
+      VpcId:
+        Fn::ImportValue: DuckCloud-VpcId
+      SecurityGroupIngress:
+        - IpProtocol: udp
+          FromPort: 41641
+          ToPort: 41641
+          CidrIp: 0.0.0.0/0
+          Description: Tailscale direct WireGuard (authenticated peers only)
+      Tags:
+        - Key: Name
+          Value: duckcloud-sg-aws-site
+
+  AwsSiteSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AwsSiteSecurityGroup
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref AwsSiteSecurityGroup
+      Description: AWS site nodes to each other
+
+  # vm1 — 기존 EC2. UserData 는 처음 만들 때 것 그대로 둔다(바꾸면 중단 필요 · 어차피 첫 부팅에만 돎). 설정은 node/vm1.sh
+  DrControlInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref UbuntuAmiId
+      SubnetId:
+        Fn::ImportValue: DuckCloud-PublicSubnet1Id
+      SecurityGroupIds:
+        - !Ref AwsSiteSecurityGroup
+      IamInstanceProfile: !Ref DrInstanceProfile
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -e
+          apt-get update -y
+          apt-get install -y docker.io docker-compose-v2 postgresql-client curl jq
+          systemctl enable --now docker
+          usermod -aG docker ubuntu
+          echo "dr-control initialization complete" > /tmp/bootstrap.log
+      Tags:
+        - Key: Name
+          Value: duckcloud-dr-control
+        - Key: duckcloud:role
+          Value: vm1
+
+  # vm2 — DB · 워커. 데이터는 1조에서 다시 채울 수 있으므로 디스크는 인스턴스와 함께 지운다
+  DbInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref UbuntuAmiId
+      SubnetId:
+        Fn::ImportValue: DuckCloud-PublicSubnet1Id
+      SecurityGroupIds:
+        - !Ref AwsSiteSecurityGroup
+      IamInstanceProfile: !Ref DrInstanceProfile
+      MetadataOptions:
+        HttpTokens: required
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: duckcloud-aws-vm2
+        - Key: duckcloud:role
+          Value: vm2
+
+  # 추가 워커 — 새로 뜰 때마다 첫 부팅에 k3s 에이전트로 vm1 에 붙는다 (VPN 없음)
+  DrAppLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: duckcloud-app-node-lt
+      LaunchTemplateData:
+        InstanceType: !Ref InstanceType
+        ImageId: !Ref UbuntuAmiId
+        IamInstanceProfile:
+          Arn: !GetAtt DrInstanceProfile.Arn
+        MetadataOptions:
+          HttpTokens: required
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            Groups:
+              - !Ref AwsSiteSecurityGroup
+        BlockDeviceMappings:
+          - DeviceName: /dev/sda1
+            Ebs:
+              VolumeSize: 20
+              VolumeType: gp3
+              DeleteOnTermination: true
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            # 추가 워커 첫 부팅 (VPN 없음, VPC 안에서 vm1 k3s 에 합류). k3s 버전 · 이미지 이름은 node/common.sh 와 맞춘다
+            set -euo pipefail
+            K3S_VERSION=v1.31.4+k3s1
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq && apt-get install -y -qq awscli curl >/dev/null
+            T=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 300')
+            md() { curl -fsS -H "X-aws-ec2-metadata-token: $T" "http://169.254.169.254/latest/meta-data/$1"; }
+            REGION=$(md placement/region); PRIV=$(md local-ipv4); IID=$(md instance-id)
+            p() { aws ssm get-parameter --region "$REGION" --name "/duckcloud/aws/$1" ${!2:+--with-decryption} --query Parameter.Value --output text; }
+            URL=$(p k3s-url); TOKEN=$(p k3s-token 1)
+            hostnamectl set-hostname "duck-aws-w-${!IID#i-}"
+            swapoff -a
+            curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="$K3S_VERSION" K3S_URL="$URL" K3S_TOKEN="$TOKEN" \
+              sh -s - agent --node-ip "$PRIV" --node-label duckcloud/role=worker
+            aws s3 cp --region "$REGION" "s3://${ArtifactBucket}/images/app-9e8e706.tar" /var/tmp/app.tar \
+              && k3s ctr -n k8s.io images import /var/tmp/app.tar && rm -f /var/tmp/app.tar
+            echo "worker joined $URL" > /var/log/duck-worker.log
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: duckcloud-aws-worker
+              - Key: duckcloud:role
+                Value: worker
+
+  DrAppAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: duckcloud-dr-app-asg
+      # vm1 · vm2 와 같은 서브넷(AZ) — AZ 사이 전송 요금 없음
+      VPCZoneIdentifier:
+        - Fn::ImportValue: DuckCloud-PublicSubnet1Id
+      LaunchTemplate:
+        LaunchTemplateId: !Ref DrAppLaunchTemplate
+        Version: !GetAtt DrAppLaunchTemplate.LatestVersionNumber
+      MinSize: '0'
+      MaxSize: '2'
+      DesiredCapacity: '0'
+      HealthCheckType: EC2
+      HealthCheckGracePeriod: 60
+      Tags:
+        - Key: Name
+          Value: duckcloud-aws-worker
+          PropagateAtLaunch: true
+
+Outputs:
+  DrControlInstanceId:
+    Description: vm1 (DR control + k3s server)
+    Value: !Ref DrControlInstance
+  DbInstanceId:
+    Description: vm2 (MySQL replica + k3s agent)
+    Value: !Ref DbInstance
+  DrAsgName:
+    Description: extra worker ASG
+    Value: !Ref DrAppAutoScalingGroup
+    Export:
+      Name: DuckCloud-DrAsgName
+  ArtifactBucketName:
+    Description: app image store (images/app-<tag>.tar)
+    Value: !Ref ArtifactBucket

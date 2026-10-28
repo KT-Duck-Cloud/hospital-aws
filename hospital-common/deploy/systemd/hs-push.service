@@ -1,0 +1,8 @@
+[Unit]
+Description=Headscale 사본 → 대기 서버
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/hospital-common
+Environment=ENTRY_CONF=/etc/hospital-common/entry.json
+ExecStart=/usr/bin/python3 -m services.entry hs-push

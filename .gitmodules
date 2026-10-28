@@ -1,0 +1,18 @@
+[submodule "external/hospital-frontend"]
+	path = external/hospital-frontend
+	url = https://github.com/KT-Duck-Cloud/hospital-frontend.git
+[submodule "external/hospital-backend-auth"]
+	path = external/hospital-backend-auth
+	url = https://github.com/KT-Duck-Cloud/hospital-backend-auth.git
+[submodule "external/hospital-backend-reservation"]
+	path = external/hospital-backend-reservation
+	url = https://github.com/KT-Duck-Cloud/hospital-backend-reservation.git
+[submodule "external/hospital-backend-stats"]
+	path = external/hospital-backend-stats
+	url = https://github.com/KT-Duck-Cloud/hospital-backend-stats.git
+[submodule "external/hospital-gitops"]
+	path = external/hospital-gitops
+	url = https://github.com/KT-Duck-Cloud/hospital-gitops.git
+[submodule "external/hospital-monitoring"]
+	path = external/hospital-monitoring
+	url = https://github.com/KT-Duck-Cloud/hospital-monitoring.git

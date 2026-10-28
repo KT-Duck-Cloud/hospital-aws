@@ -1,0 +1,108 @@
+{
+ "summary": {
+  "current_pilot_light_usd": 8.0,
+  "current_pilot_light_krw": 11200,
+  "current_warm_standby_usd": 52.0,
+  "current_warm_standby_krw": 72800,
+  "all_in_aws_usd": 455.3,
+  "all_in_aws_krw": 637420,
+  "diff_usd": 447.3,
+  "diff_krw": 626220,
+  "multiplier": "약 57배",
+  "krw_rate": 1400,
+  "remaining_credit_usd": 168.49,
+  "credit_exhaustion_days": 11,
+  "notice": "현재 무료 계정 크레딧($168.49) 기준 전면 전환 시 약 11일 후 소진되므로 30일 상시 운영 시 유료 플랜 전환 및 지출 한도(Spend Limit $550+) 설정 필수"
+ },
+ "categories": [
+  {
+   "id": "k8s",
+   "category": "쿠버네티스 & 앱",
+   "icon": "fa-dharmachakra",
+   "current_tech": "온프레미스 kubeadm (t3/t5/t6) 4개 서비스 2중화",
+   "current_cost_usd": 0.0,
+   "aws_service": "Amazon EKS + EC2 Worker (t3.medium × 3대, AZ 2개)",
+   "aws_cost_usd": 191.81,
+   "aws_cost_krw": 268534,
+   "details": "EKS 관리형 컨트롤 플레인 1개($72.00) + t3.medium 3대($85.54) + EBS gp3 60GB($5.76) + AWS Load Balancer Controller($28.51)",
+   "rationale": "메모리 9GB 및 Cluster Autoscaler 부하 대비 최적 스펙"
+  },
+  {
+   "id": "db",
+   "category": "데이터베이스",
+   "icon": "fa-database",
+   "current_tech": "MySQL 8.4 GTID 실시간 복제 (VM)",
+   "current_cost_usd": 0.0,
+   "aws_service": "Amazon RDS for MySQL 8.4 Multi-AZ",
+   "aws_cost_usd": 85.78,
+   "aws_cost_krw": 120092,
+   "details": "db.t4g.small Multi-AZ($75.17) + gp3 40GB($9.11) + 스냅샷 백업($1.50)",
+   "rationale": "의료 데이터 고가용성 보장 및 1~2분 무중단 자동 페일오버"
+  },
+  {
+   "id": "observability",
+   "category": "관측 & 모니터링",
+   "icon": "fa-chart-pie",
+   "current_tech": "Prometheus + Grafana + Node Exporter (t2)",
+   "current_cost_usd": 0.0,
+   "aws_service": "Amazon Managed Prometheus + Managed Grafana + CloudWatch",
+   "aws_cost_usd": 72.73,
+   "aws_cost_krw": 101822,
+   "details": "Managed Prometheus 샘플 4.3억 개 수집($39.88) + Managed Grafana 라이선스($29.00) + CloudWatch Logs 5GB & Alarms($3.85)",
+   "rationale": "수집 대상 32개 메트릭 10,000개 시계열 60초 주기 보관"
+  },
+  {
+   "id": "network",
+   "category": "내부망 & 접근제어",
+   "icon": "fa-shield-halved",
+   "current_tech": "Headscale(WireGuard) 메쉬망 100.64.0.x",
+   "current_cost_usd": 0.0,
+   "aws_service": "AWS VPC + NAT Gateway 1개 + SSM Session Manager",
+   "aws_cost_usd": 48.25,
+   "aws_cost_krw": 67550,
+   "details": "사설 서브넷 인터넷 아웃바운드용 NAT Gateway($44.25) + 탄력적 IP 3개($10.80) + S3 VPC 엔드포인트(무료)",
+   "rationale": "노드 외부 노출 전면 차단 및 사설망 보안 유지"
+  },
+  {
+   "id": "ingress_waf",
+   "category": "공개 입구 & WAF",
+   "icon": "fa-globe",
+   "current_tech": "Cloudflare Tunnel + Nginx Frontdoor (무료)",
+   "current_cost_usd": 0.0,
+   "aws_service": "Route 53 + Application Load Balancer + AWS WAF",
+   "aws_cost_usd": 42.23,
+   "aws_cost_krw": 59122,
+   "details": "ALB 1개($23.33) + AWS WAF WebACL & 관리형 규칙($9.80) + Route 53 호스팅영역/헬스체크($1.90) + LCU 트래픽($7.20)",
+   "rationale": "엔드투엔드 HTTPS 및 L7 웹 보안 방화벽 완전 관리"
+  },
+  {
+   "id": "security",
+   "category": "보안 & 암호화 키",
+   "icon": "fa-key",
+   "current_tech": "K8s Secret (Base64) + 호스트 인증",
+   "current_cost_usd": 0.0,
+   "aws_service": "AWS Secrets Manager + KMS + Amazon GuardDuty",
+   "aws_cost_usd": 13.0,
+   "aws_cost_krw": 18200,
+   "details": "Secrets Manager 보안암호 5개($2.00) + KMS CMK($1.00) + GuardDuty 런타임 위협 탐지($10.00)",
+   "rationale": "DB 패스워드 및 JWT 비밀키 자동 회전 및 이상 탐지"
+  },
+  {
+   "id": "cicd_storage",
+   "category": "이미지 & 배포",
+   "icon": "fa-box-archive",
+   "current_tech": "온프레미스 Harbor (.41) + Argo CD",
+   "current_cost_usd": 0.0,
+   "aws_service": "Amazon ECR + Amazon S3 Standard",
+   "aws_cost_usd": 1.5,
+   "aws_cost_krw": 2100,
+   "details": "ECR 컨테이너 저장소 5GB($0.50) + S3 백업/정적 아티팩트 20GB($1.00)",
+   "rationale": "앱 4종 컨테이너 이미지 프라이빗 보관"
+  }
+ ],
+ "finops_tips": [
+  "1년 Savings Plans(컴퓨팅) 및 RDS Reserved Instances 적용 시 월 약 $50 (약 11%) 추가 절감 가능",
+  "비프로덕션(개발/테스트) 환경 야간/주말 자동 정지 스케줄링 시 월 약 $65 절감 가능",
+  "NAT Gateway 대신 VPC 엔드포인트(S3/ECR/CloudWatch) 직접 연결 확대 시 NAT 데이터 처리 비용 대폭 축소 가능"
+ ]
+}

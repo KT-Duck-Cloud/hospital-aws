@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+# 스택 duckcloud-network — 새 프로젝트에 create.sh 로 처음 한 번. compute.yaml 이 아래 Export 를 가져다 쓴다
+#   01_network/vpc-network.yaml 과 같은 VPC · 서브넷 · S3 게이트웨이 (10.200.0.0/16 — 앱 계정 @10.200.% 와 맞춤)
+#   다른 점: 0.1 보안 그룹 2개(전체 공개 22 · 80 · 443 · 5432 · 8080)는 만들지 않는다 — 노드 보안 그룹은 compute.yaml
+Description: 'DuckCloud network - VPC 10.200.0.0/16, 2 public subnets, IGW, S3 gateway endpoint (no security groups)'
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: 10.200.0.0/16
+  PublicSubnet1Cidr:
+    Type: String
+    Default: 10.200.1.0/24
+  PublicSubnet2Cidr:
+    Type: String
+    Default: 10.200.2.0/24
+
+Resources:
+  DuckVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: duckcloud-vpc
+
+  DuckIgw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: duckcloud-igw
+
+  DuckIgwAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref DuckVpc
+      InternetGatewayId: !Ref DuckIgw
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DuckVpc
+      CidrBlock: !Ref PublicSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: duckcloud-public-subnet-1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DuckVpc
+      CidrBlock: !Ref PublicSubnet2Cidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: duckcloud-public-subnet-2
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DuckVpc
+      Tags:
+        - Key: Name
+          Value: duckcloud-public-rt
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: DuckIgwAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref DuckIgw
+
+  Subnet1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  Subnet2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # S3 는 NAT 없이 VPC 안에서 (전송 요금 없음)
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref DuckVpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PublicRouteTable
+
+Outputs:
+  VpcId:
+    Value: !Ref DuckVpc
+    Export:
+      Name: DuckCloud-VpcId
+  PublicSubnet1Id:
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: DuckCloud-PublicSubnet1Id
+  PublicSubnet2Id:
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: DuckCloud-PublicSubnet2Id

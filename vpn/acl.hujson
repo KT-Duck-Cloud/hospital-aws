@@ -1,0 +1,22 @@
+// Headscale ACL 예시 — 주소 규칙 100.64.0.<조><VM> 을 그대로 그룹으로 쓴다. 허용한 것 말고는 모두 막힌다.
+{
+  "hosts": {
+    "control":   "100.64.0.1/32",
+    "site1-db":  "100.64.0.52/32",
+    "site1-db2": "100.64.0.32/32",
+    "site1-app": "100.64.0.51/32",
+    "aws-app":   "100.64.0.81/32",
+    "aws-db":    "100.64.0.82/32"
+  },
+  "acls": [
+    // 컨트롤 서버 — 판정(3306) · DR 운영 SSH(22) · 앱 헬스(30080)
+    {"action": "accept", "src": ["control"], "dst": ["site1-db:22,3306", "site1-db2:22,3306", "aws-db:22,3306",
+                                                    "site1-app:30080", "aws-app:30080"]},
+    // 복제 — AWS ← 1조, 복귀 때 1조 ← AWS
+    {"action": "accept", "src": ["aws-db"], "dst": ["site1-db:3306", "site1-db2:3306"]},
+    {"action": "accept", "src": ["site1-db", "site1-db2"], "dst": ["aws-db:3306"]},
+    // 앱 → 자기 사이트 DB
+    {"action": "accept", "src": ["site1-app"], "dst": ["site1-db:3306", "site1-db2:3306"]},
+    {"action": "accept", "src": ["aws-app"], "dst": ["aws-db:3306"]}
+  ]
+}

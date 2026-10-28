@@ -1,0 +1,1925 @@
+{
+ "_설명": "5051 /aws-services 페이지의 원본. 서비스·기술·자원 유형 설명을 여기서 고치거나 추가하면 다음 새로고침에 바로 반영 (재시작 불필요). 새 AWS 리소스가 생겼는데 resource_map 에 유형이 없으면 페이지에 '설명 필요'로 표시됨. 기술 상세(tech[].detail): why · fit · alternatives[[대안, 선택 안 한 이유]] · snippets[{file, find(그 줄을 찾아), before, after, note}] · commands · verify — snippets 는 저장소 파일에서 매번 실제 코드를 읽어 보여 줌",
+ "updated": "2026-10-23",
+ "services": [
+  {
+   "id": "ec2",
+   "group": "컴퓨트",
+   "service": "Amazon EC2",
+   "icon": "fa-server",
+   "resource": "vm1 duckcloud-dr-control · vm2 duckcloud-aws-vm2 (t3.small × 2)",
+   "billing": "켜진 시간만 — t3.small 시간당 $0.0264 × 2대 (꺼지면 $0)",
+   "why": "온프레미스(t3) vm1 · vm2 를 1:1 로 대신할 AWS t8-vm 두 대. 평소 꺼 둠(Pilot Light), DR 승격 시 병원 서비스 운영",
+   "config": [
+    [
+     "cloud/infra/compute.yaml",
+     "DrControlInstance(vm1) · DbInstance(vm2) — 태그 duckcloud:role=vm1/vm2"
+    ],
+    [
+     "cloud/infra/up.sh · down.sh",
+     "켜기+설정(SSM) / 끄기 (AWS 가 운영 중이면 거부)"
+    ],
+    [
+     "cloud/infra/node/vm1.sh · vm2.sh",
+     "VPN t8-vm1 .81 · t8-vm2 .82 가입, k3s 서버/에이전트"
+    ],
+    [
+     "dashboard/aws_site.py",
+     "5050 전원 · 5051 토글/시연 모드 · 5052 인벤토리가 함께 읽는 노드 정의"
+    ]
+   ],
+   "control": "5051 과금 표 스위치 · 시연 모드 ON(2대) · 전체 절전 OFF"
+  },
+  {
+   "id": "ebs",
+   "group": "컴퓨트",
+   "service": "Amazon EBS (gp3)",
+   "icon": "fa-hard-drive",
+   "resource": "vm1 30GB · vm2 20GB = 50GB",
+   "billing": "GB-월 $0.096 — 인스턴스를 꺼도 계속 (월 약 $4.8)",
+   "why": "두 노드 루트 디스크. vm2 데이터는 온프레미스에서 다시 채울 수 있어 인스턴스와 함께 삭제(DeleteOnTermination)",
+   "config": [
+    [
+     "cloud/infra/compute.yaml",
+     "BlockDeviceMappings VolumeSize 30 / 20, gp3"
+    ]
+   ],
+   "control": "삭제는 destroy.sh (10-29 발표 뒤)"
+  },
+  {
+   "id": "ipv4",
+   "group": "네트워크",
+   "service": "공인 IPv4 (자동 할당)",
+   "icon": "fa-globe",
+   "resource": "켜진 노드마다 1개 · EIP 0개",
+   "billing": "시간당 $0.005 / 개 — 켜진 동안만 (EIP 는 2026-10-10 해제)",
+   "why": "Tailscale 직결 41641/udp 로 Headscale 메쉬에 붙기 위한 바깥 주소. 고정 IP 불필요(VPN 주소로 접근)",
+   "config": [
+    [
+     "cloud/infra/compute.yaml",
+     "LaunchTemplate AssociatePublicIpAddress · 서브넷 자동 할당"
+    ],
+    [
+     "dashboard/server.py",
+     "Cloudflare 동기화 막아 둠 — 공개 사이트는 ctl Cloudflare Tunnel"
+    ]
+   ],
+   "control": "노드를 끄면 자동 반납"
+  },
+  {
+   "id": "asg",
+   "group": "컴퓨트",
+   "service": "EC2 Auto Scaling + Launch Template",
+   "icon": "fa-layer-group",
+   "resource": "duckcloud-dr-app-asg (min 0 · max 2) · duckcloud-app-node-lt",
+   "billing": "서비스 자체 무료 — 워커 1대당 t3.small $0.0264/h + IPv4",
+   "why": "승격 뒤 부하가 크면 추가 워커. VPN 없이 VPC 안에서 vm1 k3s(https://사설IP:6443)에 합류, S3 에서 앱 이미지 받음",
+   "config": [
+    [
+     "cloud/infra/compute.yaml",
+     "DrAppLaunchTemplate UserData (k3s agent · S3 이미지 import)"
+    ],
+    [
+     "cloud/infra/up.sh --workers N",
+     "desired 0~2"
+    ]
+   ],
+   "control": "5051 과금 표 ASG 0/1/2 버튼"
+  },
+  {
+   "id": "vpc",
+   "group": "네트워크",
+   "service": "Amazon VPC",
+   "icon": "fa-network-wired",
+   "resource": "duckcloud-vpc 10.200.0.0/16 · 공인 서브넷 2 · IGW · S3 Gateway Endpoint · 보안 그룹",
+   "billing": "무료 (NAT Gateway 없음 · 같은 AZ 배치로 AZ 간 전송료 없음)",
+   "why": "노드끼리는 보안 그룹 자기참조로 전부 허용(k3s · MySQL · flannel), 바깥은 41641/udp 만. SSH 없음",
+   "config": [
+    [
+     "CloudFormation duckcloud-network",
+     "VPC · 서브넷 · 라우팅 · S3 엔드포인트 (Export DuckCloud-VpcId 등)"
+    ],
+    [
+     "cloud/infra/compute.yaml",
+     "AwsSiteSecurityGroup 41641/udp + SelfIngress"
+    ]
+   ],
+   "control": "-"
+  },
+  {
+   "id": "s3",
+   "group": "스토리지",
+   "service": "Amazon S3",
+   "icon": "fa-box-archive",
+   "resource": "duckcloud-artifacts-… (앱 이미지 tar) · duckcloud-backup-… (배포 번들)",
+   "billing": "GB-월 약 $0.025 — 현재 수십 MB 라 월 1센트 미만. 게이트웨이 경유 다운로드 전송료 0",
+   "why": "앱 이미지 app-9e8e706.tar 보관 → 노드 · 워커가 받아 k3s containerd 에 import (ECR 대신, 비공개 · SSE 암호화)",
+   "config": [
+    [
+     "cloud/infra/put-image.sh",
+     "IMG/초기이미지_9e8e706.tar → s3://…/images/"
+    ],
+    [
+     "cloud/infra/node/common.sh",
+     "img_import() — aws s3 cp → k3s ctr images import"
+    ],
+    [
+     "cloud/infra/compute.yaml",
+     "ArtifactBucket (퍼블릭 차단 · AES256 · 미완료 업로드 1일 정리)"
+    ]
+   ],
+   "control": "-"
+  },
+  {
+   "id": "ssm",
+   "group": "관리",
+   "service": "AWS Systems Manager",
+   "icon": "fa-terminal",
+   "resource": "Run Command · Parameter Store /duckcloud/aws/* · SSM Agent (vm1 · vm2)",
+   "billing": "무료 (Run Command · Standard 파라미터)",
+   "why": "SSH 를 열지 않고 노드 설정 · 명령 실행. 가입 키(join-key, 가입 뒤 삭제) · k3s-token(SecureString) · k3s-url 공유",
+   "config": [
+    [
+     "cloud/infra/up.sh",
+     "run_node() — common.sh+vmN.sh 를 send-command 로 실행"
+    ],
+    [
+     "cloud/infra/put-join-key.sh",
+     "Headscale 가입 키 → /duckcloud/aws/join-key"
+    ],
+    [
+     "cloud/infra/node/vm1.sh",
+     "k3s-token · k3s-url put-parameter"
+    ],
+    [
+     "dashboard/aws_site.py",
+     "5052 웹 터미널(AWS 노드) · vm2 MySQL 가동/정지"
+    ]
+   ],
+   "control": "5052 터미널에서 AWS 노드 선택 → SSM 으로 실행"
+  },
+  {
+   "id": "iam",
+   "group": "보안",
+   "service": "AWS IAM",
+   "icon": "fa-shield-halved",
+   "resource": "duckcloud-instance-role · duckcloud-instance-profile",
+   "billing": "무료",
+   "why": "노드 권한 최소화: SSM 관리 · /duckcloud/aws/* 파라미터 · S3 images/* 읽기만. Mac 은 aws login 프로필 aws-agent",
+   "config": [
+    [
+     "cloud/infra/compute.yaml",
+     "DrInstanceRole — AmazonSSMManagedInstanceCore + 인라인 정책 2개"
+    ],
+    [
+     "dashboard/connection.py",
+     "대시보드 최소 권한 정책 JSON (/aws-connection)"
+    ]
+   ],
+   "control": "-"
+  },
+  {
+   "id": "cfn",
+   "group": "관리",
+   "service": "AWS CloudFormation",
+   "icon": "fa-cubes",
+   "resource": "duckcloud-network · duckcloud-compute · duckcloud-storage · duckcloud-budgets",
+   "billing": "무료",
+   "why": "AWS 리소스를 코드로 관리 (IaC). 대시보드는 compute 스택 출력에서 vm1 · vm2 ID 를 읽음",
+   "config": [
+    [
+     "cloud/infra/deploy.sh",
+     "미리보기 → --apply (vm1 교체 변경이면 멈춤)"
+    ],
+    [
+     "cloud/infra/destroy.sh",
+     "발표 뒤 전체 삭제"
+    ]
+   ],
+   "control": "-"
+  },
+  {
+   "id": "budgets",
+   "group": "비용",
+   "service": "AWS Budgets",
+   "icon": "fa-wallet",
+   "resource": "DuckCloud-Monthly-Budget-100USD",
+   "billing": "무료 (예산 2개까지)",
+   "why": "월 $100 한도 · 실제/예측 청구액 — 5051 카드 '이번 달 실제 청구'",
+   "config": [
+    [
+     "CloudFormation duckcloud-budgets",
+     "월 예산 $100"
+    ],
+    [
+     "dashboard/billing.py",
+     "get_budget() 10분 캐시"
+    ]
+   ],
+   "control": "-"
+  },
+  {
+   "id": "ce",
+   "group": "비용",
+   "service": "AWS Cost Explorer API",
+   "icon": "fa-magnifying-glass-dollar",
+   "resource": "get-cost-and-usage",
+   "billing": "호출당 $0.01 — 버튼을 누를 때만",
+   "why": "서비스별 실제 비용 · 과금 명세(/billing-history)",
+   "config": [
+    [
+     "dashboard/billing.py",
+     "get_cost_explorer()"
+    ],
+    [
+     "dashboard/cost_history.py",
+     "일별 명세"
+    ]
+   ],
+   "control": "5051 '서비스별 실제 비용 조회' · 과금 명세 '조회'"
+  },
+  {
+   "id": "snap",
+   "group": "백업",
+   "service": "스냅숏 · AMI (EBS · RDS)",
+   "icon": "fa-camera",
+   "resource": "vm1 작업 전 EBS 스냅숏 · AMI ec2_ami_backup · RDS duckcloud-mysql-final-20261010",
+   "billing": "GB-월 EBS $0.055 · RDS $0.095 (증분 저장이라 실제는 더 적음)",
+   "why": "구조 변경 전 되돌릴 지점. RDS(8.0)는 8.4 복제 사슬을 받을 수 없어 삭제하고 마지막 스냅숏만 보관",
+   "config": [
+    [
+     "cloud/infra/README.md",
+     "정리한 것 (2026-10-10)"
+    ],
+    [
+     "cloud/infra/destroy.sh",
+     "--with-backups · --with-snapshots"
+    ]
+   ],
+   "control": "발표 뒤 destroy.sh"
+  },
+  {
+   "id": "ecr",
+   "group": "이전 구조",
+   "service": "Amazon ECR",
+   "icon": "fa-boxes-stacked",
+   "resource": "duckteam/web · medical · reservation · admin · heartbeat",
+   "billing": "GB-월 $0.10 (이미지 몇 개 · 소액)",
+   "why": "0.1 구조의 이미지 저장소. 지금은 S3 tar + k3s import 로 대체 — 정리 대상",
+   "config": [
+    [
+     "CloudFormation duckcloud-storage",
+     "Ecr 리포지토리 5개 + 백업 버킷"
+    ]
+   ],
+   "control": "destroy.sh 에서 함께 정리"
+  },
+  {
+   "id": "cw",
+   "group": "관측",
+   "service": "Amazon CloudWatch",
+   "icon": "fa-chart-line",
+   "resource": "EC2 기본 지표(5분) · 알람 0 · 로그 그룹 0",
+   "billing": "무료 범위",
+   "why": "AWS 쪽 지표는 기본만. 메트릭 · 경보는 메쉬의 node-exporter → Prometheus/Grafana(팀 모니터링)",
+   "config": [
+    [
+     "ops/vpnjoin/install.sh",
+     "가입 시 node-exporter 설치"
+    ]
+   ],
+   "control": "-"
+  }
+ ],
+ "tech": [
+  {
+   "area": "IaC",
+   "tech": "AWS CloudFormation",
+   "aws": [
+    "cfn"
+   ],
+   "how": "VPC·EC2·ASG·S3·IAM·예산을 YAML 템플릿 4개(network·compute·storage·budgets)로 선언. deploy.sh 가 변경 세트로 미리보기 → --apply, vm1 교체가 생기는 변경이면 멈춤. 발표 뒤 destroy.sh 로 일괄 삭제",
+   "where": [
+    "cloud/infra/compute.yaml",
+    "cloud/infra/deploy.sh",
+    "cloud/infra/destroy.sh"
+   ],
+   "id": "cfn",
+   "detail": {
+    "why": "VPC·EC2·ASG·S3·IAM·예산을 콘솔에서 손으로 만들면 누가 무엇을 바꿨는지 남지 않고, 발표 뒤 지울 때 빠뜨린 리소스가 계속 과금된다. 템플릿으로 선언하면 Git 이 변경 기록이 되고, 스택 하나를 지우면 딸린 리소스가 같이 지워진다.",
+    "fit": [
+     "강의 과정(AWS · CloudFormation 실습)에서 다룬 도구 — 평가 기준의 '배운 기술 적용'에 직접 해당",
+     "AWS 네이티브라 별도 상태 파일(state)이 없음 — 6명이 같은 계정을 써도 스택이 상태를 들고 있음",
+     "변경 세트(change set)로 '무엇이 바뀌고 무엇이 다시 만들어지는지'를 적용 전에 확인 → vm1 교체 방지 장치를 스크립트로 구현",
+     "리전 하나(ap-southeast-2) · 단일 계정이라 StackSets 같은 다중 계정 기능이 필요 없음"
+    ],
+    "alternatives": [
+     [
+      "Terraform",
+      "멀티 클라우드 · 생태계는 넓지만 tfstate 를 S3+DynamoDB 로 따로 운영해야 하고, 6명이 상태 잠금까지 다루기엔 2주 일정에 부담. 대상이 AWS 하나뿐이라 이점이 작음 (발표에서 비교 설명용)"
+     ],
+     [
+      "AWS CDK",
+      "코드(TypeScript/Python)로 쓰지만 결국 CloudFormation 으로 변환 — 팀원 모두가 읽기엔 YAML 이 직관적이고 빌드 단계가 하나 늘어남"
+     ],
+     [
+      "콘솔 수동 생성",
+      "가장 빠르지만 재현 · 삭제 · 변경 이력이 없음 — 0.1 단계에서 RDS · EIP · Route53 이 남아 과금된 경험"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/deploy.sh",
+      "find": "create-change-set",
+      "after": 13,
+      "before": 0,
+      "note": "변경 세트로 미리보기 → vm1 이 다시 만들어지는 변경이면 멈춤"
+     },
+     {
+      "file": "cloud/infra/compute.yaml",
+      "find": "  DbInstance:",
+      "after": 22,
+      "before": 1,
+      "note": "vm2 선언 — IMDSv2 필수 · 디스크는 인스턴스와 함께 삭제"
+     }
+    ],
+    "commands": [
+     "bash cloud/infra/deploy.sh            # 변경 미리보기만",
+     "bash cloud/infra/deploy.sh --apply    # 적용 (vm1 교체 변경이면 거부)",
+     "aws cloudformation describe-stack-resources --stack-name duckcloud-compute --profile aws-agent",
+     "bash cloud/infra/destroy.sh           # 지울 목록 확인 (발표 뒤 --apply)"
+    ],
+    "verify": "④ 실제 리소스 표의 스택 상태가 *_COMPLETE 이고 리소스 28개가 모두 설명과 연결되면 템플릿과 실제가 일치"
+   }
+  },
+  {
+   "area": "컴퓨트",
+   "tech": "EC2 t3.small ×2 · ASG · Launch Template",
+   "aws": [
+    "ec2",
+    "asg",
+    "ebs"
+   ],
+   "how": "온프레미스 t3-vm1·vm2 와 1:1 인 두 노드를 평소 꺼 둠(Pilot Light). AMI 고정(교체 방지), vm2·워커는 IMDSv2 필수. 부족할 때만 ASG 0→1~2 워커가 첫 부팅에 k3s 에 합류",
+   "where": [
+    "cloud/infra/compute.yaml",
+    "cloud/infra/up.sh",
+    "cloud/infra/down.sh"
+   ],
+   "id": "compute",
+   "detail": {
+    "why": "온프레미스(t3)는 vm1(K8s 마스터+앱) · vm2(MySQL+워커) 두 대다. 장애 때 그대로 넘겨받으려면 같은 역할의 두 대가 필요하고, 평소에는 꺼 두어 비용을 0 에 가깝게 유지한다(Pilot Light).",
+    "fit": [
+     "t3.small(2 vCPU · 2GiB) — k3s 서버 + 앱, MySQL 8.4 복제본이 각각 들어가는 최소 크기, 켠 시간만 시간당 $0.0264",
+     "온프레미스와 같은 2노드 구조라 승격 절차(DB → 앱 → 입구)를 팀원 조와 똑같이 재사용",
+     "AMI 를 실행 중인 것으로 고정 → 템플릿을 고쳐도 vm1 이 새로 만들어지지 않음",
+     "부하가 클 때만 ASG 워커 0→2 — 평소 0 이라 과금 없음"
+    ],
+    "alternatives": [
+     [
+      "EKS",
+      "관리형 K8s 지만 컨트롤 플레인만 시간당 $0.10(월 약 $73) — 월 $100 예산으로는 대기 비용이 과도"
+     ],
+     [
+      "ECS Fargate",
+      "서버 관리가 없지만 온프레미스와 다른 배포 방식(작업 정의)이 되어 같은 매니페스트 · 승격 절차를 쓸 수 없음"
+     ],
+     [
+      "t3.micro",
+      "1GiB 로는 k3s + MySQL 8.4 메모리 부족 — 0.1 단계에서 컨테이너가 2GiB 를 다 쓴 기록"
+     ],
+     [
+      "상시 가동 Warm Standby",
+      "전환은 빠르지만 2대 상시 가동 시 월 약 $46 — '최소 규모 대기' 설계 목표와 맞지 않음"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/compute.yaml",
+      "find": "  DrAppAutoScalingGroup:",
+      "after": 16,
+      "before": 0,
+      "note": "워커 ASG — 같은 서브넷(AZ), 평소 0"
+     },
+     {
+      "file": "cloud/infra/up.sh",
+      "find": "aws ec2 start-instances",
+      "after": 4,
+      "before": 2,
+      "note": "켜기 — 두 대를 함께 기동 후 SSM 연결 대기"
+     }
+    ],
+    "commands": [
+     "bash cloud/infra/up.sh                 # 켜기 + 설정",
+     "bash cloud/infra/up.sh --workers 1     # + 워커 1대",
+     "bash cloud/infra/down.sh               # 끄기 (AWS 가 운영 중이면 거부)"
+    ],
+    "verify": "5051 노드 패널에서 vm1 · vm2 running + SSM Online, 끈 뒤에는 '지금 시간당' $0"
+   }
+  },
+  {
+   "area": "컨테이너",
+   "tech": "k3s v1.31.4 (경량 Kubernetes)",
+   "aws": [
+    "ec2"
+   ],
+   "how": "vm1 = k3s 서버(--tls-san 100.64.0.81, traefik 끔), vm2·워커 = 에이전트. 앱은 kustomize(deploy/k8s/site-standby-app)로 replicas 0 · READ_ONLY_MODE=true 대기, 승격 시 provision.app_up 이 쓰기 허용 · reservation 2 · auth 1 · stats 1 → NodePort 30080 /readyz",
+   "where": [
+    "cloud/infra/node/vm1.sh",
+    "cloud/infra/node/vm2.sh",
+    "cloud/infra/node/app.sh",
+    "deploy/k8s/site-standby-app/"
+   ],
+   "id": "k3s",
+   "detail": {
+    "why": "온프레미스와 같은 Kubernetes 매니페스트(kustomize)로 앱을 올려야 승격 때 '같은 앱'이 뜬다. t3.small 2GiB 에서 돌아가는 K8s 가 필요했다.",
+    "fit": [
+     "단일 바이너리 · 메모리 약 500MB — kubeadm 대비 t3.small 에서 MySQL 과 같이 돌릴 수 있음",
+     "표준 K8s API 라 kubectl · kustomize · 같은 이미지(9e8e706) 그대로",
+     "--tls-san 100.64.0.81 로 VPN 주소에서도 API 접근, traefik 을 끄고 온프레미스와 같은 NodePort 30080",
+     "워커 합류가 토큰 + URL 두 값이면 끝 → SSM Parameter Store 로 자동화"
+    ],
+    "alternatives": [
+     [
+      "kubeadm",
+      "강의에서 쓴 정석 방식(온프레미스 t3 가 사용)이지만 etcd · kubelet 구성이 무겁고 2GiB 노드에서는 여유가 없음"
+     ],
+     [
+      "Docker Compose",
+      "가볍지만 온프레미스 K8s 매니페스트와 달라 승격 때 다른 앱 정의를 따로 관리해야 함"
+     ],
+     [
+      "EKS",
+      "EC2 항목과 같이 컨트롤 플레인 고정비 때문에 제외"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/node/vm1.sh",
+      "find": "curl -sfL https://get.k3s.io",
+      "after": 4,
+      "before": 1,
+      "note": "k3s 서버 설치 — 노드 주소는 VPC, API 는 VPN 주소로도"
+     },
+     {
+      "file": "deploy/k8s/site-standby-app/kustomization.yaml",
+      "find": "patches:",
+      "after": 8,
+      "before": 0,
+      "note": "평소 대기 — 읽기 전용 · replicas 0"
+     },
+     {
+      "file": "pilotlight/replica.py",
+      "find": "def app_up",
+      "after": 22,
+      "before": 0,
+      "note": "승격 때 앱 기동 — 쓰기 허용 · replicas · /readyz"
+     }
+    ],
+    "commands": [
+     "k3s kubectl get nodes -o wide        # 5052 터미널 → AWS vm1",
+     "k3s kubectl -n duck-app get deploy,cm",
+     "curl -s http://127.0.0.1:30080/readyz"
+    ],
+    "verify": "5052 → AWS vm1 'K8s 노드/파드' 에서 t8-vm1 Ready(control-plane) · t8-vm2 Ready"
+   }
+  },
+  {
+   "area": "네트워크",
+   "tech": "VPC 10.200.0.0/16 · S3 Gateway Endpoint · 보안 그룹 자기참조",
+   "aws": [
+    "vpc",
+    "ipv4"
+   ],
+   "how": "공인 서브넷 + IGW, NAT·EIP 없음(비용 0). 노드끼리는 보안 그룹 자기참조로 전부 허용, 바깥에서 들어오는 포트는 Tailscale 직결 41641/udp 하나. SSH 포트 없음",
+   "where": [
+    "CloudFormation duckcloud-network",
+    "cloud/infra/compute.yaml"
+   ],
+   "id": "vpc",
+   "detail": {
+    "why": "AWS 를 팀 메쉬(100.64.0.0/10) · 온프레미스 사설망과 겹치지 않는 대역에 격리하고, 바깥에서 들어오는 입구를 최소로 두기 위해.",
+    "fit": [
+     "10.200.0.0/16 — 공유기(192.168.100.x) · VMware vmnet(10.2~10.4) · 메쉬와 충돌 없음",
+     "공인 서브넷 + IGW 만, NAT Gateway(시간당 $0.059) · EIP 없음 → 네트워크 고정비 0",
+     "S3 Gateway Endpoint 로 이미지 다운로드가 인터넷을 안 거침 — 무료 · 빠름",
+     "보안 그룹 자기참조로 노드끼리만 전부 허용, 바깥은 41641/udp(WireGuard) 하나 — SSH 포트 자체가 없음"
+    ],
+    "alternatives": [
+     [
+      "프라이빗 서브넷 + NAT Gateway",
+      "정석적인 격리지만 NAT 가 월 약 $43 — 노드는 SSM · VPN 으로만 관리해서 공인 IP 가 있어도 들어올 포트가 없음"
+     ],
+     [
+      "Bastion(점프 서버) + SSH",
+      "강의 실습 방식이지만 서버 1대 · 키 관리가 늘어남 → SSM 으로 대체"
+     ],
+     [
+      "Site-to-Site VPN / Transit Gateway",
+      "시간당 과금 · 온프레미스 고정 IP 필요 — 개인 PC 6대 구조와 맞지 않아 Headscale 메쉬로 대체"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/compute.yaml",
+      "find": "  AwsSiteSecurityGroup:",
+      "after": 24,
+      "before": 0,
+      "note": "바깥은 41641/udp 만, 노드끼리는 자기참조로 전부"
+     },
+     {
+      "file": "cloud/infra/network.yaml",
+      "find": "VPCEndpoint",
+      "after": 8,
+      "before": 3,
+      "note": "S3 Gateway Endpoint"
+     }
+    ],
+    "commands": [
+     "aws ec2 describe-security-groups --group-ids sg-0example --profile aws-agent",
+     "aws ec2 describe-vpc-endpoints --profile aws-agent"
+    ],
+    "verify": "④ 리소스 표 duckcloud-network 12개 · AwsSiteSecurityGroup 인바운드가 41641/udp 하나"
+   }
+  },
+  {
+   "area": "오버레이 VPN",
+   "tech": "Tailscale 클라이언트 → Headscale(자체 호스팅) WireGuard 메쉬",
+   "aws": [
+    "ssm"
+   ],
+   "how": "AWS 노드도 팀원 VM 과 같은 가입 스크립트로 슬롯 t8(t8-vm1 .81 · t8-vm2 .82) 가입. 가입 키는 SSM SecureString 에 잠깐 두고 가입 뒤 삭제. ACL 로 t8@ 끼리 · 온프레미스 DB 3306 만 허용",
+   "where": [
+    "cloud/infra/put-join-key.sh",
+    "cloud/infra/node/common.sh",
+    "infra/ctl/headscale-acl.hujson"
+   ],
+   "id": "vpn",
+   "detail": {
+    "why": "개인 PC 6대(공유기 뒤) + ctl + AWS 가 서로 사설 주소로 닿아야 DB 복제 · 승격 · 관제가 된다. 고정 IP · 포트포워딩 없이 NAT 를 넘는 메쉬가 필요했다.",
+    "fit": [
+     "WireGuard 기반 — 커널급 암호화 · 성능, NAT 뒤에서도 직결(실패 시 릴레이)",
+     "Headscale 은 Tailscale 제어 서버의 오픈소스 구현 → 인원 · 비용 제한 없이 자체 운영(vpn.example.org)",
+     "슬롯 규칙(tN-vm1 .N1 · tN-vm2 .N2)으로 주소 고정 → AWS 는 t8 .81/.82",
+     "ACL(hujson)로 '누가 누구의 어느 포트'를 코드로 관리 — AWS 는 자기끼리 + DB 3306 만"
+    ],
+    "alternatives": [
+     [
+      "AWS Site-to-Site VPN",
+      "온프레미스 쪽 고정 공인 IP · 장비가 필요하고 시간당 과금, 팀원 PC 각각을 붙일 수 없음"
+     ],
+     [
+      "Tailscale SaaS",
+      "가장 쉽지만 무료 플랜 인원 · 기기 제한, 제어 서버가 외부라 '자체 구축' 요소가 약함 (설계 단계에서 Headscale 로 대체 승인)"
+     ],
+     [
+      "OpenVPN / 순수 WireGuard 허브",
+      "허브 경유라 지연 · 단일 장애점, 키 배포를 손으로 해야 함"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/node/common.sh",
+      "find": "vpn_join() {",
+      "after": 15,
+      "before": 1,
+      "note": "AWS 노드 가입 — 팀원과 같은 install.sh, 키는 SSM 에서 한 번만"
+     },
+     {
+      "file": "vpn/acl.hujson",
+      "find": "\"src\": [\"t8@\"], \"dst\": [\"t8@:*\"]",
+      "after": 6,
+      "before": 1,
+      "note": "ACL — AWS 끼리 · DB 3306"
+     }
+    ],
+    "commands": [
+     "tailscale status                       # ctl 에서 t8-vm1 · t8-vm2 active; direct",
+     "bash cloud/infra/put-join-key.sh         # 가입 키 → SSM (2시간 만료, 가입 뒤 삭제)"
+    ],
+    "verify": "5052 인벤토리에서 AWS vm1/vm2 'VPN online', ctl tailscale status 에 direct …:41641"
+   }
+  },
+  {
+   "area": "원격 관리",
+   "tech": "AWS Systems Manager — Run Command · Parameter Store",
+   "aws": [
+    "ssm",
+    "iam"
+   ],
+   "how": "SSH 없이 up.sh 가 노드 스크립트를 send-command 로 실행. k3s 토큰(SecureString)·URL 공유. 5052 웹 터미널도 AWS 노드는 SSM 으로 명령",
+   "where": [
+    "cloud/infra/up.sh",
+    "dashboard/aws_site.py (ssm_run)"
+   ],
+   "id": "ssm",
+   "detail": {
+    "why": "노드에 SSH 포트를 열지 않고도 설정 · 명령을 보내고, 노드끼리 필요한 비밀값(k3s 토큰)을 안전하게 나누기 위해.",
+    "fit": [
+     "SSH 키 · 포트 · Bastion 없이 IAM 권한으로만 접근 — 보안 그룹에 22 가 없음",
+     "Run Command · Standard 파라미터 무료",
+     "명령 기록이 AWS 에 남음(감사) + 대시보드 billing-actions.csv",
+     "SecureString(KMS 암호화)으로 k3s 토큰, 가입 키는 쓰고 바로 삭제"
+    ],
+    "alternatives": [
+     [
+      "SSH + 키 페어",
+      "강의 기본 방식이지만 22 포트 개방 · 키 분실/유출 관리 필요"
+     ],
+     [
+      "EC2 Instance Connect",
+      "임시 키 방식이지만 여전히 22 포트 필요"
+     ],
+     [
+      "Secrets Manager",
+      "자동 회전 기능이 있지만 비밀 1개당 월 $0.40 — 토큰 1~2개는 Parameter Store(무료)로 충분"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/up.sh",
+      "find": "run_node() {",
+      "after": 22,
+      "before": 0,
+      "note": "노드 스크립트를 send-command 로 실행하고 결과 대기"
+     },
+     {
+      "file": "cloud/site.py",
+      "find": "def ssm_run",
+      "after": 20,
+      "before": 0,
+      "note": "5052 웹 터미널 — AWS 노드 명령"
+     }
+    ],
+    "commands": [
+     "aws ssm describe-instance-information --profile aws-agent",
+     "aws ssm describe-parameters --parameter-filters Key=Name,Option=BeginsWith,Values=/duckcloud/"
+    ],
+    "verify": "③ 서비스 표 SSM 행 '에이전트 2/2 Online · 파라미터 2개(k3s-token, k3s-url)' — join-key 가 남아 있지 않아야 정상"
+   }
+  },
+  {
+   "area": "아티팩트",
+   "tech": "S3 비공개 버킷 + containerd 이미지 import",
+   "aws": [
+    "s3",
+    "vpc"
+   ],
+   "how": "앱 이미지 tar(9e8e706)를 SSE 암호화 버킷에 두고, 노드가 VPC 게이트웨이로 받아 k3s ctr images import — 레지스트리(ECR) 없이, 전송료 0",
+   "where": [
+    "cloud/infra/put-image.sh",
+    "cloud/infra/node/common.sh (img_import)"
+   ],
+   "id": "s3img",
+   "detail": {
+    "why": "AWS 노드가 온프레미스와 같은 앱 이미지(9e8e706)를 받아야 하는데, 레지스트리를 따로 운영하지 않고 가장 싸고 단순하게 전달하기 위해.",
+    "fit": [
+     "이미지 tar 54MB — S3 보관비 월 1센트 미만, 게이트웨이 경유라 다운로드 전송료 0",
+     "퍼블릭 차단 · SSE(AES256) · 역할은 images/* 읽기만",
+     "워커가 새로 떠도 UserData 에서 같은 tar 를 받아 바로 import → 레지스트리 인증 불필요",
+     "온프레미스 · t1 과 '같은 tar' 를 써서 이미지 불일치 위험 없음"
+    ],
+    "alternatives": [
+     [
+      "Amazon ECR",
+      "표준 레지스트리지만 노드 로그인(토큰 12시간) · 저장 요금, 0.1 에서 만든 리포 5개는 지금 정리 대상"
+     ],
+     [
+      "Harbor(온프레미스) 에서 pull",
+      "온프레미스가 장애일 때 레지스트리도 같이 멈춤 → DR 사이트가 온프레미스에 의존하면 안 됨"
+     ],
+     [
+      "Docker Hub / GHCR",
+      "외부 의존 · 비공개 저장소 인증 · 속도 제한"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/node/common.sh",
+      "find": "img_import() {",
+      "after": 10,
+      "before": 1,
+      "note": "S3 → containerd import (이미 있으면 건너뜀)"
+     },
+     {
+      "file": "cloud/infra/put-image.sh",
+      "find": "aws s3 cp",
+      "after": 1,
+      "before": 6,
+      "note": "Mac → S3 업로드"
+     }
+    ],
+    "commands": [
+     "bash cloud/infra/put-image.sh",
+     "aws s3 ls s3://duckcloud-artifacts-123456789012-ap-southeast-2/images/",
+     "k3s ctr -n k8s.io images ls | grep 9e8e706"
+    ],
+    "verify": "③ S3 행 '이미지 1개 · 54MB', vm1 · vm2 containerd 에 reservation-app-*:9e8e706"
+   }
+  },
+  {
+   "area": "데이터 · DR",
+   "tech": "MySQL 8.4 비동기 복제 (GTID) · 승격",
+   "aws": [
+    "ec2"
+   ],
+   "how": "'역할 준비' 승인 시 온프레미스 t3-vm2 → AWS vm2 실시간 복제 + 앱 계정 duck_t8@10.200.% · k3s Secret app-db. 장애 시 온프레미스 계정 잠금 → read_only OFF → 쓰기 수용, 복귀 때 온프레미스로 역동기화",
+   "where": [
+    "ops/hsagent/provision.py",
+    "ops/hsagent/mysql_replica.sh"
+   ],
+   "id": "mysql",
+   "detail": {
+    "why": "장애 시 데이터 손실(RPO)을 줄이려면 온프레미스 DB 변경이 AWS 에 실시간으로 쌓여 있어야 한다. 승격 시 그 복제본을 쓰기 가능으로 바꾸면 바로 운영된다.",
+    "fit": [
+     "온프레미스와 같은 MySQL 8.4 — 같은 버전끼리 GTID 실시간 복제(온프레미스 → AWS)",
+     "GTID 라 원본이 바뀌어도 위치 계산 없이 이어 받기 · 복귀 때 역동기화가 쉬움",
+     "read_only + super_read_only 로 대기 중 실수 쓰기 차단, 승격 때만 OFF",
+     "인스턴스 위 설치라 추가 요금 없음"
+    ],
+    "alternatives": [
+     [
+      "Amazon RDS for MySQL",
+      "관리형이지만 0.1 의 RDS 는 8.0 이라 8.4 복제 사슬을 받을 수 없었고, 상시 과금(정지 7일 후 자동 재시작) → 2026-10-10 삭제"
+     ],
+     [
+      "Aurora",
+      "최소 비용이 커서 예산 밖, 온프레미스 원본에서의 지속 복제가 번거로움"
+     ],
+     [
+      "mysqldump 주기 백업",
+      "단순하지만 RPO 가 백업 주기만큼 — '복구 시간 보장' 목표와 맞지 않음"
+     ],
+     [
+      "Galera 멀티 마스터",
+      "동기식이라 VPN 지연(100ms+)에서 쓰기 성능이 크게 떨어지고 분할 시 위험"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "pilotlight/mysql_replica.sh",
+      "find": "read_only = ON",
+      "after": 2,
+      "before": 6,
+      "note": "복제본 설정 — GTID · binlog · 읽기 전용"
+     },
+     {
+      "file": "pilotlight/replica.py",
+      "find": "def app_prepare",
+      "after": 20,
+      "before": 0,
+      "note": "역할 준비 — 복제 + 앱 계정 + Secret"
+     }
+    ],
+    "commands": [
+     "SHOW REPLICA STATUS\\G   -- vm2 에서 (5052 → AWS vm2)",
+     "SELECT @@gtid_mode, @@super_read_only;"
+    ],
+    "verify": "역할 준비 뒤 vm2 Replica_IO/SQL_Running=Yes · Seconds_Behind_Source 0~수초"
+   }
+  },
+  {
+   "area": "DR 판정",
+   "tech": "duck-hsagent 메쉬 판정 (ctl)",
+   "aws": [
+    "ec2"
+   ],
+   "how": "AWS(t8)가 켜져 10분 정상이면 AWS 편성. 온프레미스 DB 5분 무응답 → AWS 승격 · 앱 기동. 증인(AWS t8-vm2 가 아직 온프레미스에서 받는 중)이면 보류해 이중 운영 방지. 공개 입구 upstream 자동 전환 (duckcloud_0.3)",
+   "where": [
+    "ops/hsagent/mesh.py",
+    "ops/hsagent/duck_hsagent.py"
+   ],
+   "id": "drjudge",
+   "detail": {
+    "why": "장애 판단을 사람이 하면 복구 시간이 보장되지 않는다. 하지만 각 조가 따로 판단하면 네트워크가 끊겼을 때 두 곳이 동시에 온프레미스가 되는 split-brain 이 생긴다 — 판정자는 한 곳이어야 한다.",
+    "fit": [
+     "판정은 ctl 한 곳 · 조 안 앱은 지시받은 승격만 실행",
+     "AWS 는 켜진 뒤 10분(STABLE_SEC=600) 정상일 때만 후보 — 잠깐 켠 상태로 승격되지 않음",
+     "온프레미스 DB 5분(FAILOVER_SEC=300) 무응답 → AWS 하나로 승격 (0.2 의 다단계 국내 DR 단계 없앰)",
+     "증인 확인: AWS vm2 가 아직 온프레미스에서 받고 있으면 '판정 쪽 경로 문제'로 보고 보류",
+     "공개 입구(nginx upstream)까지 자동 전환 → RTO 를 사람 손 없이"
+    ],
+    "alternatives": [
+     [
+      "Route 53 헬스체크 · 장애 조치 라우팅",
+      "이 계정 설정상 failover 라우팅을 쓸 수 없고, DB 승격 순서(잠금 → 쓰기 허용 → 앱)를 DNS 만으로는 못 함"
+     ],
+     [
+      "Orchestrator / MHA",
+      "MySQL 자동 승격 도구지만 조 단위(앱 + DB + 입구) 전환과 VPN 메쉬 상태를 같이 보지 못함"
+     ],
+     [
+      "K8s 멀티 클러스터(Karmada 등)",
+      "학습 · 운영 비용이 커 2주 범위를 넘음"
+     ],
+     [
+      "사람이 수동 전환",
+      "RTO 를 보장할 수 없음 — 문제 정의 자체"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "pilotlight/flows.py",
+      "find": "def witness_veto",
+      "after": 14,
+      "before": 0,
+      "note": "증인 — 이중 운영 방지"
+     },
+     {
+      "file": "pilotlight/flows.py",
+      "find": "def failover",
+      "after": 16,
+      "before": 0,
+      "note": "온프레미스 → AWS 승격"
+     },
+     {
+      "file": "pilotlight/flows.py",
+      "find": "def frontdoor_maybe",
+      "after": 10,
+      "before": 0,
+      "note": "공개 입구 upstream 전환"
+     }
+    ],
+    "commands": [
+     "curl -s https://vpn.example.org:63728/join/names.json   # 지금 온프레미스 · AWS 담당",
+     "운영 콘솔 메쉬 카드 → 'AWS 역할 준비' 승인"
+    ],
+    "verify": "names.json 의 sites['2조'].member == 't8', 온프레미스 장애 시험 때 sites['1조'] 가 t8 로 바뀜"
+   }
+  },
+  {
+   "area": "보안 · IAM",
+   "tech": "최소 권한 인스턴스 역할 · aws login 세션 · IMDSv2",
+   "aws": [
+    "iam"
+   ],
+   "how": "노드 역할은 SSM 관리 + /duckcloud/aws/* 파라미터 + S3 images/* 읽기만. Mac 대시보드는 정적 키 없이 aws login(프로필 aws-agent) 임시 세션, 대시보드 최소 권한 정책은 /aws-connection",
+   "where": [
+    "cloud/infra/compute.yaml (DrInstanceRole)",
+    "dashboard/connection.py"
+   ],
+   "id": "iam",
+   "detail": {
+    "why": "공개 저장소 · 여러 사람이 쓰는 PC 에서 장기 액세스 키가 유출되면 계정 전체가 위험하다. 노드와 사람 모두 필요한 만큼만, 짧게 쓰는 자격 증명을 쓴다.",
+    "fit": [
+     "노드 역할은 SSM 관리 + /duckcloud/aws/* 파라미터 + S3 images/* 읽기 — 다른 버킷 · 서비스는 거부",
+     "Mac 대시보드는 aws login 임시 세션(프로필 aws-agent) — 키 파일 없음, 만료 시 화면에 안내",
+     "IMDSv2(HttpTokens required) — SSRF 로 메타데이터 자격 증명을 빼가는 공격 차단",
+     "대시보드가 부르는 API 목록에서 최소 권한 정책 JSON 을 자동 생성(/aws-connection)"
+    ],
+    "alternatives": [
+     [
+      "IAM 사용자 + 장기 액세스 키",
+      "흔하지만 유출 시 피해가 크고 회전 관리가 필요 — 이 계정의 사람 접근은 AWS 가 관리하는 방식이라 만들지 않음"
+     ],
+     [
+      "AdministratorAccess 역할",
+      "편하지만 노드 하나가 털리면 계정 전체가 위험"
+     ],
+     [
+      "IMDSv1 허용",
+      "기본값이지만 SSRF 취약 — vm2 · 워커는 v2 필수"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/infra/compute.yaml",
+      "find": "  DrInstanceRole:",
+      "after": 36,
+      "before": 0,
+      "note": "노드 역할 — 관리형 1 + 인라인 2"
+     },
+     {
+      "file": "cloud/connection.py",
+      "find": "def get_iam_policy",
+      "after": 22,
+      "before": 0,
+      "note": "대시보드 최소 권한 정책 생성"
+     }
+    ],
+    "commands": [
+     "aws iam get-role --role-name duckcloud-instance-role --profile aws-agent",
+     "aws login --profile aws-agent    # 세션 만료 시"
+    ],
+    "verify": "/aws-connection 의 API 호출 표 · 최소 권한 정책 JSON, 노드에서 다른 버킷 접근 시 AccessDenied"
+   }
+  },
+  {
+   "area": "FinOps",
+   "tech": "Budgets · Cost Explorer · 기능별 ON/OFF",
+   "aws": [
+    "budgets",
+    "ce",
+    "ec2",
+    "asg"
+   ],
+   "how": "월 $100 예산, Cost Explorer 는 버튼 때만($0.01), 5051 에서 vm1·vm2·ASG 를 기능 단위로 켜고 끔. AWS 가 운영 중 중이면 전체 절전 거부. 모든 제어는 billing-actions.csv 감사 기록",
+   "where": [
+    "dashboard/billing.py",
+    "dashboard/cost_history.py",
+    "CloudFormation duckcloud-budgets"
+   ],
+   "id": "finops",
+   "detail": {
+    "why": "크레딧 범위(월 $100)에서 DR 사이트를 운영하려면 '언제 · 무엇이 · 얼마' 나가는지 보이고, 쓰지 않을 때 바로 끌 수 있어야 한다.",
+    "fit": [
+     "Budgets 는 무료 — 실제 · 예측 청구액을 대시보드 카드로",
+     "Cost Explorer 는 호출당 $0.01 이라 버튼 때만",
+     "기능 단위(vm1 · vm2 · ASG) ON/OFF + 시연 모드(2대) · 전체 절전",
+     "AWS 가 온프레미스로 운영 중이면 절전 거부 — 비용 아끼려다 병원 서비스를 끄는 사고 방지",
+     "모든 제어를 billing-actions.csv 에 기록 → 과금 명세와 대조"
+    ],
+    "alternatives": [
+     [
+      "콘솔 Billing 화면만 보기",
+      "실시간 ON/OFF 와 연결되지 않고 지연(최대 24시간)"
+     ],
+     [
+      "AWS Instance Scheduler",
+      "일정 기반 자동 정지 — 스택 · Lambda 가 추가되고, 이 프로젝트는 멘토링 · 시연 때만 켜는 불규칙 운영"
+     ],
+     [
+      "Lambda 자동 정지",
+      "'AWS 가 운영 중인지' 같은 메쉬 상태를 알 수 없어 위험"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/billing.py",
+      "find": "def master(mode):",
+      "after": 14,
+      "before": 0,
+      "note": "전체 절전 · 시연 모드 — 운영 중이면 거부"
+     },
+     {
+      "file": "00_budgets/budgets.yaml",
+      "find": "BudgetLimit",
+      "after": 4,
+      "before": 4,
+      "note": "월 $100 예산"
+     }
+    ],
+    "commands": [
+     "5051 → 기능별 과금 ON/OFF · 시연 모드 ON · 전체 절전 OFF",
+     "tail dashboard/billing-actions.csv"
+    ],
+    "verify": "끈 뒤 '지금 시간당 $0', 고정비 카드 = EBS + 스냅숏(월 약 $10)"
+   }
+  },
+  {
+   "area": "관측",
+   "tech": "CloudWatch 기본 지표 + node-exporter → Prometheus/Grafana",
+   "aws": [
+    "cw"
+   ],
+   "how": "AWS 쪽 유료 지표·로그 없이 기본만. VPN 가입 때 node-exporter 를 깔아 팀 모니터링에서 수집",
+   "where": [
+    "ops/vpnjoin/install.sh"
+   ],
+   "id": "obs",
+   "detail": {
+    "why": "AWS 노드도 팀의 다른 조와 같은 화면에서 봐야 장애 판단 · 비교가 된다. AWS 만 따로 CloudWatch 대시보드를 만들면 관측이 둘로 갈라진다.",
+    "fit": [
+     "VPN 가입 스크립트가 node-exporter(:9100)를 깔아 메쉬 편성 점수 · Prometheus 수집에 그대로 사용",
+     "CloudWatch 는 무료 기본 지표만 — 상세 지표 · 로그 · 알람 요금 없음",
+     "MySQL 은 mysqld_exporter(:9104)로 복제 지연 · IO/SQL 스레드 수집"
+    ],
+    "alternatives": [
+     [
+      "CloudWatch Agent + 상세 지표 · Logs",
+      "지표 · 로그 수집 요금, 온프레미스 조와 다른 화면"
+     ],
+     [
+      "Amazon Managed Prometheus/Grafana",
+      "관리형이지만 워크스페이스 · 수집량 과금, 팀 자체 Prometheus 가 이미 있음"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "vpn/install.sh",
+      "find": "node-exporter :9100",
+      "after": 4,
+      "before": 0,
+      "note": "가입 시 node-exporter 설치"
+     },
+     {
+      "file": "pilotlight/mysql_replica.sh",
+      "find": "9104 mysqld_exporter",
+      "after": 4,
+      "before": 0,
+      "note": "복제 지연 수집용 exporter"
+     }
+    ],
+    "commands": [
+     "curl -s http://100.64.0.81:9100/metrics | head   # VPN 안에서"
+    ],
+    "verify": "팀 Grafana 에 t8-vm1 · t8-vm2 노드 지표"
+   }
+  },
+  {
+   "area": "공개 입구 · DNS",
+   "tech": "Cloudflare Tunnel · Cloudflare DNS (ctl.kr)",
+   "aws": [],
+   "how": "공개 사이트는 ctl nginx → Cloudflare Tunnel, AWS 에 공인 진입점(ALB·EIP·Route53) 없음. 승격 시 nginx upstream 만 100.64.0.81/.82:30080 으로",
+   "where": [
+    "infra/ctl/05_frontdoor_tunnel.sh",
+    "ops/hsagent/mesh.py (frontdoor_auto)"
+   ],
+   "id": "front",
+   "detail": {
+    "why": "병원 공개 주소(www.example.org)는 하나로 두고, 뒤쪽 운영 사이트만 바꿔야 사용자가 장애를 모른다. AWS 쪽에 공인 진입점을 따로 두면 비용과 공격면이 늘어난다.",
+    "fit": [
+     "Tunnel 은 바깥으로 나가는 연결만 — 공유기 포트포워딩 · 고정 IP 없이 공개",
+     "무료 TLS · CDN, DNS 는 이미 ctl.kr 을 Cloudflare 에서 운영",
+     "승격 시 nginx upstream 만 100.64.0.81/.82:30080 으로 바꾸면 끝 — DNS 전파 대기 없음"
+    ],
+    "alternatives": [
+     [
+      "ALB + ACM",
+      "AWS 표준이지만 시간당 $0.0225 + LCU 상시 과금, 온프레미스와 공용 입구가 되지 못함"
+     ],
+     [
+      "Route 53 페일오버 레코드",
+      "이 계정에서 쓸 수 없는 라우팅 정책 · TTL 만큼 전환 지연 · 호스팅 영역 월 요금 — 2026-10-10 영역 삭제"
+     ],
+     [
+      "EIP + DNS 직접 갱신",
+      "0.1 방식 — 공개 레코드를 EC2 IP 로 덮어써 사고 위험 → 대시보드에서 막음"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "infra/ctl/05_frontdoor_tunnel.sh",
+      "find": "upstream duckcloud_active",
+      "after": 6,
+      "before": 0,
+      "note": "공개 입구 upstream — DR 때 교체되는 블록"
+     },
+     {
+      "file": "pilotlight/flows.py",
+      "find": "def frontdoor_maybe",
+      "after": 10,
+      "before": 0,
+      "note": "자동 전환"
+     }
+    ],
+    "commands": [
+     "curl -sI https://www.example.org | grep -i x-duckcloud-route"
+    ],
+    "verify": "응답 헤더 X-Duckcloud-Route 로 지금 어느 조가 받는지 확인"
+   }
+  },
+  {
+   "area": "관제",
+   "tech": "Python 대시보드 5050·5051·5052 + stat-gate(TLS·로그인)",
+   "aws": [
+    "ec2",
+    "ssm",
+    "budgets"
+   ],
+   "how": "aws_site.py 한 곳에서 CloudFormation 출력으로 vm1·vm2 를 읽어 세 화면이 같은 정의를 씀. 내부 접속은 stat-gate(10.x · 사무실 LAN, *.ctl.kr 인증서, 계정 잠금)",
+   "where": [
+    "dashboard/aws_site.py",
+    "dashboard/stat_gate.py",
+    "dashboard/start_stat.sh"
+   ],
+   "id": "dash",
+   "detail": {
+    "why": "평가 기준의 '자체 도구(원클릭 DR 훈련 · RTO/RPO 대시보드)'와 과금 통제를 한 곳에서 보여 주고, AWS 정의가 화면마다 어긋나지 않게 하기 위해.",
+    "fit": [
+     "표준 라이브러리(http.server)만 — 설치 · 빌드 없이 Mac · ctl 어디서나",
+     "aws_site.py 한 곳이 CloudFormation 출력에서 vm1 · vm2 를 읽음 → 3개 화면이 같은 정의",
+     "stat-gate: *.ctl.kr 인증서 TLS · 계정 잠금 · 허용 대역(10.x · 사무실 LAN)만, 대시보드 자체는 127.0.0.1",
+     "설명은 aws_catalog.json 하나 — 고치면 이 페이지에 바로 반영"
+    ],
+    "alternatives": [
+     [
+      "Grafana 만으로 구성",
+      "지표 표시는 강하지만 EC2 켜기/끄기 · SSM 명령 같은 제어 · 설명 문서를 담기 어려움"
+     ],
+     [
+      "Flask/React 앱",
+      "기능은 같지만 의존성 · 빌드가 늘어남 (ctl 의 옛 vm5-billing 이 Flask — 따로 돌며 어긋난 사례)"
+     ],
+     [
+      "AWS 콘솔 직접 사용",
+      "팀원 모두에게 콘솔 권한이 필요하고 온프레미스 · 메쉬 상태와 함께 볼 수 없음"
+     ]
+    ],
+    "snippets": [
+     {
+      "file": "cloud/site.py",
+      "find": "def outputs",
+      "after": 18,
+      "before": 0,
+      "note": "CloudFormation 출력 → 노드 ID"
+     },
+     {
+      "file": "dashboard/stat_gate.py",
+      "find": "def allowed(ip)",
+      "after": 6,
+      "before": 0,
+      "note": "허용 대역 밖은 TLS 전에 끊음"
+     }
+    ],
+    "commands": [
+     "./dashboard/start_stat.sh",
+     "https://duckcloud-stat.example.org:5050 · :5051 · :5052 (VPN · 사무실 LAN)"
+    ],
+    "verify": "세 포트 로그인 화면 → 로그인 뒤 같은 vm1 · vm2 상태"
+   }
+  }
+ ],
+ "resource_map": {
+  "AWS::EC2::Instance": "ec2",
+  "AWS::EC2::LaunchTemplate": "asg",
+  "AWS::AutoScaling::AutoScalingGroup": "asg",
+  "AWS::S3::Bucket": "s3",
+  "AWS::IAM::Role": "iam",
+  "AWS::IAM::InstanceProfile": "iam",
+  "AWS::EC2::VPC": "vpc",
+  "AWS::EC2::Subnet": "vpc",
+  "AWS::EC2::InternetGateway": "vpc",
+  "AWS::EC2::VPCGatewayAttachment": "vpc",
+  "AWS::EC2::RouteTable": "vpc",
+  "AWS::EC2::Route": "vpc",
+  "AWS::EC2::SubnetRouteTableAssociation": "vpc",
+  "AWS::EC2::VPCEndpoint": "vpc",
+  "AWS::EC2::SecurityGroup": "vpc",
+  "AWS::EC2::SecurityGroupIngress": "vpc",
+  "AWS::ECR::Repository": "ecr",
+  "AWS::Budgets::Budget": "budgets"
+ },
+ "removed": [
+  [
+   "Amazon RDS (MySQL 8.0)",
+   "2026-10-10 삭제 — vm2 MySQL 8.4 로 대체, 최종 스냅숏만 보관"
+  ],
+  [
+   "Elastic IP 2개",
+   "2026-10-10 해제 — 자동 공인 IP + VPN 주소"
+  ],
+  [
+   "Route 53 호스팅 영역 4개",
+   "2026-10-10 삭제 — 위임 안 됨, DNS 는 Cloudflare(ctl.kr)"
+  ],
+  [
+   "Application Load Balancer",
+   "없음 — 공개 입구는 ctl nginx → Cloudflare Tunnel, 승격 시 upstream 만 전환"
+  ],
+  [
+   "NAT Gateway",
+   "없음 — 공인 서브넷 + S3 Gateway Endpoint"
+  ],
+  [
+   "Amazon EKS",
+   "사용 안 함 — 비용(클러스터 시간당 $0.10) 때문에 EC2 위 k3s"
+  ],
+  [
+   "KMS 고객 관리 키 alias/dkey",
+   "삭제 대기(PendingDeletion) — 과금 없음, SecureString 은 AWS 관리 키"
+  ]
+ ],
+ "features": [
+  {
+   "id": "network",
+   "no": 1,
+   "icon": "fa-network-wired",
+   "title": "네트워크 격리",
+   "eval": "전문성 · AWS 네트워크 · 보안그룹",
+   "pitch": "바깥에서 들어올 수 있는 문은 VPN 포트 하나 — SSH 포트도 없습니다.",
+   "why": "환자 정보를 다루는 대기 사이트가 인터넷에 노출되면 온프레미스보다 먼저 공격받는다. 접근은 팀 VPN(Headscale) 안에서만.",
+   "aws": [
+    "VPC 10.200.0.0/16",
+    "퍼블릭 서브넷 2개",
+    "보안그룹",
+    "S3 게이트웨이 엔드포인트",
+    "공인 IPv4(켜진 동안)"
+   ],
+   "setup": [
+    [
+     "cloud/infra/network.yaml",
+     "VPC · 서브넷 · 라우팅 · S3 게이트웨이 엔드포인트 (이미지 받기 전송 요금 없음)"
+    ],
+    [
+     "cloud/infra/compute.yaml",
+     "AwsSiteSecurityGroup — 입력 udp/41641(WireGuard 직결) + 노드끼리 전체, 그 밖 없음"
+    ],
+    [
+     "infra/ctl/headscale-acl.hujson",
+     "VPN 안에서도 t8@ 은 필요한 포트만 (MySQL 3306 · k8s · exporter)"
+    ]
+   ],
+   "verify": [
+    [
+     "aws ec2 describe-security-groups --filters Name=tag:Name,Values=duckcloud-sg-aws-site --query 'SecurityGroups[].IpPermissions'",
+     "udp 41641 하나 + 같은 보안그룹끼리, 22 없음"
+    ],
+    [
+     "tailscale status (vm1 · vm2)",
+     "100.64.0.81 · .82 가 메쉬에 direct 로 붙음"
+    ]
+   ],
+   "checks": [
+    "sg_ingress"
+   ]
+  },
+  {
+   "id": "iam-people",
+   "no": 2,
+   "icon": "fa-user-shield",
+   "title": "IAM — 사람 권한 (담당별 역할)",
+   "eval": "전문성 · 보안 · 최소 권한",
+   "pitch": "IAM 사용자도 장기 키도 없습니다. 담당마다 좁은 역할로 바꿔 들어가 작업합니다.",
+   "why": "6명이 한 계정을 쓰면 누가 무엇을 바꿨는지 모른다. 담당별 역할 · 세션 이름으로 행위를 나누고, 위험한 권한(PassRole · S3)은 막는다.",
+   "aws": [
+    "IAM 역할 5개 + CloudFormation 실행 역할",
+    "AWS Settings 초대(AccountFullAccessRole 세션)",
+    "계정 비밀번호 정책",
+    "SCP · RCP(프로젝트 관리형)"
+   ],
+   "setup": [
+    [
+     "cloud/infra/iam/team-roles3.sh plan → apply",
+     "duck-iac · onprem-view · monitoring · security-review · dev 역할 + duck-cfn-exec-role (경로 /duckteam/)"
+    ],
+    [
+     "신뢰 조건",
+     "AccountFullAccessRole 세션 중 담당 정 · 부의 사용자 ID 만 (aws:userid) — members.local.tsv, git 밖"
+    ],
+    [
+     "IaC 역할",
+     "duckcloud-* 스택만 · PassRole 은 duck-cfn-exec-role → CloudFormation 에만 · 노드 켜기/끄기는 Name=duckcloud-* 태그만"
+    ],
+    [
+     "보기 역할",
+     "ViewOnlyAccess + S3 명시 거부 (조회 권한에 섞인 버킷 목록까지 차단)"
+    ]
+   ],
+   "verify": [
+    [
+     "bash cloud/infra/iam/team-roles3.sh check",
+     "역할별 신뢰 대상 · 관리형/인라인 정책 · 마지막 사용"
+    ],
+    [
+     "aws iam simulate-principal-policy --policy-source-arn <duck-dev-role ARN> --action-names ec2:DescribeInstances s3:ListAllMyBuckets ec2:StopInstances --context-entries ContextKeyName=aws:RequestedRegion,ContextKeyValues=ap-southeast-2,ContextKeyType=string",
+     "allowed · explicitDeny · implicitDeny — 리전 문맥을 빼면 프로젝트 SCP(RegionFloor) 때문에 모두 거부로 보이니 주의"
+    ],
+    [
+     "aws iam list-users",
+     "[] — 사람 계정 · 장기 키 없음"
+    ]
+   ],
+   "caveat": "새 AWS 경험에서는 초대된 팀원이 AccountFullAccessRole(관리자) 세션을 받는다 — 담당 역할은 '평소 작업은 좁은 권한으로' 하는 약속 · 기록이고, 관리자 세션 자체를 막지는 않는다. 담당 역할 정책은 시뮬레이터로 설계대로 동작함을 확인 (10-23).",
+   "checks": [
+    "team_roles",
+    "team_role_policy",
+    "iam_users",
+    "password_policy"
+   ]
+  },
+  {
+   "id": "iam-machine",
+   "no": 3,
+   "icon": "fa-id-badge",
+   "title": "IAM — 서버 권한 (인스턴스 역할)",
+   "eval": "전문성 · 보안",
+   "pitch": "서버는 키 파일 없이 역할로만 AWS 를 부르고, 필요한 경로만 읽습니다.",
+   "why": "노드에 액세스 키를 두면 서버가 털릴 때 계정이 털린다. 인스턴스 역할은 임시 자격 증명이고 범위를 경로 단위로 묶을 수 있다.",
+   "aws": [
+    "IAM 역할 duckcloud-instance-role",
+    "인스턴스 프로파일",
+    "IMDS 임시 자격 증명"
+   ],
+   "setup": [
+    [
+     "cloud/infra/compute.yaml DrInstanceRole",
+     "관리형 AmazonSSMManagedInstanceCore(SSM) · AmazonEC2ContainerRegistryReadOnly"
+    ],
+    [
+     "인라인 duckcloud-aws-site-params",
+     "ssm:GetParameter /duckcloud/aws/* · PutParameter 는 k3s-token · k3s-url 두 개만"
+    ],
+    [
+     "인라인 duckcloud-aws-site-images",
+     "s3:GetObject 버킷의 images/* 만"
+    ],
+    [
+     "duck-cfn-exec-role",
+     "스택이 이 역할 하나만 만들고 EC2 에만 넘길 수 있음 (관리자 역할 생성 불가)"
+    ]
+   ],
+   "verify": [
+    [
+     "aws iam list-attached-role-policies --role-name duckcloud-instance-role",
+     "SSM · ECR 읽기 2개"
+    ],
+    [
+     "aws iam get-role-policy --role-name duckcloud-instance-role --policy-name duckcloud-aws-site-params",
+     "리소스가 /duckcloud/aws/* 로 묶임"
+    ]
+   ],
+   "checks": [
+    "instance_role",
+    "instance_profile"
+   ]
+  },
+  {
+   "id": "access",
+   "no": 4,
+   "icon": "fa-terminal",
+   "title": "서버 접속 — SSH 없이 SSM",
+   "eval": "전문성 · 보안",
+   "pitch": "서버 접속은 Session Manager 로만, 들어가면 담당에 따라 관리 계정과 보기 계정으로 나뉩니다.",
+   "why": "SSH 는 포트 · 키 관리 · 접속 기록이 따로다. SSM 은 포트 없이 IAM 으로 허가하고 세션이 남는다.",
+   "aws": [
+    "SSM Session Manager",
+    "SSM Run Command",
+    "IMDSv2"
+   ],
+   "setup": [
+    [
+     "cloud/infra/session.sh",
+     "세션 문서 SSM-SessionManagerRunShell · RunAs 사용"
+    ],
+    [
+     "cloud/infra/node/users.sh",
+     "duck-admin(sudo, IaC) · duck-view(sudo 없음 · 로그 · K8s 읽기) — 역할 태그 SSMSessionRunAs"
+    ],
+    [
+     "cloud/infra/up.sh · node/*.sh",
+     "노드 설정 자체도 SSM Run Command 로 보냄"
+    ],
+    [
+     "compute.yaml MetadataOptions",
+     "HttpTokens: required (IMDSv2)"
+    ]
+   ],
+   "verify": [
+    [
+     "aws ssm describe-instance-information --query 'InstanceInformationList[].[InstanceId,PingStatus]'",
+     "켜진 노드 모두 Online"
+    ],
+    [
+     "aws ssm start-session --target <vm1 id>",
+     "whoami → duck-admin 또는 duck-view"
+    ],
+    [
+     "aws ec2 describe-instances --filters Name=tag:Name,Values=duckcloud-* --query 'Reservations[].Instances[].MetadataOptions.HttpTokens'",
+     "모두 required"
+    ]
+   ],
+   "checks": [
+    "ssm_online",
+    "imds_v2"
+   ]
+  },
+  {
+   "id": "secrets",
+   "no": 5,
+   "icon": "fa-key",
+   "title": "비밀값 관리",
+   "eval": "전문성 · 보안",
+   "pitch": "비밀값은 코드에도 이미지에도 없습니다 — Parameter Store 와 Kubernetes Secret 에만 있습니다.",
+   "why": "코드 · Git 이력에 남은 비밀은 지울 수 없다. 노드 기동 값은 SSM, 앱 비밀은 k3s Secret, DB 관리자 비밀번호는 DR 컨트롤 서버에만.",
+   "aws": [
+    "SSM Parameter Store SecureString (KMS)",
+    "Kubernetes Secret (k3s)"
+   ],
+   "setup": [
+    [
+     "cloud/infra/put-join-key.sh",
+     "VPN 가입 키 → /duckcloud/aws/join-key (가입 뒤 노드가 지움)"
+    ],
+    [
+     "cloud/infra/node/vm1.sh",
+     "k3s-token · k3s-url → Parameter Store (ASG 워커 합류용)"
+    ],
+    [
+     "ops/hsagent/provision.py",
+     "역할 준비 때 k3s Secret 4종 — DB 2종은 AWS 값, jwt · medical-key 는 온프레미스 값 복사 (암호화된 진료 기록을 그대로 읽기 위해)"
+    ]
+   ],
+   "verify": [
+    [
+     "aws ssm describe-parameters --parameter-filters Key=Name,Option=BeginsWith,Values=/duckcloud/ --query 'Parameters[].[Name,Type]'",
+     "SecureString · 값은 보지 않음"
+    ],
+    [
+     "k3s kubectl -n hospital get secret",
+     "이름 4개만 확인 (값 출력 금지)"
+    ]
+   ],
+   "checks": [
+    "parameters"
+   ]
+  },
+  {
+   "id": "compute",
+   "no": 6,
+   "icon": "fa-server",
+   "title": "컴퓨트 · k3s · 탄력성",
+   "eval": "전문성 · EC2 · 완성도(탄력성)",
+   "pitch": "온프레미스와 같은 2대 구성 — vm1 은 k3s 와 앱, vm2 는 DB. 부하가 크면 워커 0→2대.",
+   "why": "온프레미스를 1:1 로 대신해야 같은 Helm 차트 · 같은 이미지가 그대로 뜬다. EKS 는 대기 사이트에 컨트롤 플레인 비용이 과하다.",
+   "aws": [
+    "EC2 t3.small × 2",
+    "EBS gp3 30 + 20GB",
+    "Auto Scaling 그룹 duckcloud-dr-app-asg (0~2)",
+    "Launch Template"
+   ],
+   "setup": [
+    [
+     "cloud/infra/compute.yaml",
+     "vm1 · vm2 · ASG · Launch Template (워커는 VPC 안에서 vm1 k3s 에 합류)"
+    ],
+    [
+     "cloud/infra/node/vm1.sh · vm2.sh · app.sh",
+     "k3s 서버/에이전트 · Traefik 30080 · Helm rsv 0개 대기"
+    ],
+    [
+     "bash cloud/infra/up.sh --workers N",
+     "desired 0~2"
+    ],
+    [
+     "cloud/infra/encrypt-root.sh vm1|vm2 --apply",
+     "루트 볼륨 암호화 교체 — 스냅숏 → 암호화 복사 → 새 볼륨 → 교체 (옛 볼륨은 되돌리기용으로 남김) · ASG 워커는 템플릿 Encrypted: true"
+    ]
+   ],
+   "verify": [
+    [
+     "aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names duckcloud-dr-app-asg --query 'AutoScalingGroups[].[MinSize,DesiredCapacity,MaxSize]'",
+     "0 · 0 · 2 (평소)"
+    ],
+    [
+     "k3s kubectl get nodes -o wide",
+     "vm1 · vm2 Ready"
+    ],
+    [
+     "aws ec2 describe-volumes --filters Name=attachment.instance-id,Values=<vm1 id>,<vm2 id> --query 'Volumes[].[VolumeId,Encrypted]'",
+     "모두 True"
+    ]
+   ],
+   "checks": [
+    "power",
+    "ebs_encryption"
+   ]
+  },
+  {
+   "id": "dr",
+   "no": 7,
+   "icon": "fa-shuffle",
+   "title": "데이터 복제 · DR 승격",
+   "eval": "완성도 · 자동 복구 · RTO/RPO",
+   "pitch": "온프레미스가 모두 멈추면 5분 뒤 사람 없이 AWS 가 이어받고, 데이터 손실은 60초 이내입니다.",
+   "why": "서버는 다시 띄우면 되지만 환자 기록은 다시 만들 수 없다. 복제가 정상(지연 60초 이하)일 때만 승격 후보.",
+   "aws": [
+    "EC2 위 MySQL 8.4 GTID 복제본 (super_read_only)",
+    "Argo CD rsv-aws (off → active)"
+   ],
+   "setup": [
+    [
+     "ops/hsagent/mysql_replica.sh",
+     "vm2 에 복제본 설치 · 복제 계정 repl_t8 (REQUIRE SSL)"
+    ],
+    [
+     "ops/hsagent/mesh.py",
+     "온프레미스 t3 · t5 DB 5분 무응답 + 증인(AWS 가 아직 온프레미스를 받고 있으면 보류)"
+    ],
+    [
+     "ops/hsagent/provision.py",
+     "펜싱(온프레미스 앱 계정 잠금) → 승격 → 앱 기동 → 공개 입구 전환 · 3분 정상이면 복귀"
+    ],
+    [
+     "hospital-gitops argocd/apps/rsv-aws.yaml",
+     "DR 이 mode 만 바꿈 — Argo 가 쓰기 모드로 띄움"
+    ]
+   ],
+   "verify": [
+    [
+     "상태 페이지 2차 조치 카드 (duckcloud-stat.example.org)",
+     "복제 정상 · 지연 0초 · 자동 승격 켜짐"
+    ],
+    [
+     "vm2: mysql -e 'SHOW REPLICA STATUS\\G'",
+     "IO · SQL Yes · Seconds_Behind_Source ≤ 60"
+    ],
+    [
+     "sudo bash ~/duckcloud-infra/37_argo_site.sh status",
+     "rsv-aws Synced · 꺼 둠(off)"
+    ],
+    [
+     "bash ~/duckcloud-infra/35_dr_drill.sh",
+     "2차 시험 — 승격 · 복귀 시간 기록 (RTO 실측)"
+    ]
+   ],
+   "checks": []
+  },
+  {
+   "id": "iac",
+   "no": 8,
+   "icon": "fa-file-code",
+   "title": "IaC — 스택으로 만들고 지우기",
+   "eval": "전문성 · IaC · 완성도(재현성)",
+   "shared": "IaC 담당과 공동",
+   "pitch": "AWS 자원은 스택 2개, 명령 4개로 만들고 켜고 끄고 지웁니다.",
+   "why": "평소 꺼 두는 사이트는 켤 때마다 같아야 한다. 콘솔 수작업은 재현되지 않는다.",
+   "aws": [
+    "CloudFormation duckcloud-network · duckcloud-compute",
+    "Change set 미리보기"
+   ],
+   "setup": [
+    [
+     "cloud/infra/create.sh",
+     "처음 한 번 — network → compute"
+    ],
+    [
+     "cloud/infra/deploy.sh",
+     "변경 미리보기만(기본) · --apply 로 적용 · vm1 교체 변경이면 멈춤"
+    ],
+    [
+     "cloud/infra/up.sh · down.sh · destroy.sh",
+     "켜기 · 끄기 · 발표 뒤 전체 삭제"
+    ]
+   ],
+   "verify": [
+    [
+     "aws cloudformation describe-stacks --query 'Stacks[?starts_with(StackName,`duckcloud`)].[StackName,StackStatus]'",
+     "두 스택 *_COMPLETE"
+    ],
+    [
+     "bash cloud/infra/deploy.sh",
+     "변경 없음 = 코드와 실제가 같음"
+    ]
+   ],
+   "checks": [
+    "stacks"
+   ]
+  },
+  {
+   "id": "cost",
+   "no": 9,
+   "icon": "fa-coins",
+   "title": "비용 — Pilot Light",
+   "eval": "완성도 · 리소스 최적화 · 비용 최적화",
+   "pitch": "평소 꺼 두면 월 약 $8, 상시 가동 대비 약 86% 적습니다 — 대신 꺼진 동안은 온프레미스 안 전환이 방어합니다.",
+   "why": "1년에 한 번 쓸지 모르는 사이트에 상시 비용을 낼 이유가 없다. 켜는 기간을 고르는 것이 설계다.",
+   "aws": [
+    "AWS Budgets / AWS Settings spend limit",
+    "Cost Explorer (필요할 때만 조회)",
+    "freetier 플랜 크레딧"
+   ],
+   "setup": [
+    [
+     "bash cloud/infra/down.sh",
+     "평소 꺼 둠 — 꺼진 동안 EBS · 스냅숏만"
+    ],
+    [
+     "이 화면 상단 · [과금] 버튼",
+     "기능별 과금 ON/OFF · 과금 명세"
+    ]
+   ],
+   "verify": [
+    [
+     "이 화면 상단 카드",
+     "지금 시간당 · 고정비 · 30일 추정"
+    ],
+    [
+     "aws budgets describe-budgets --account-id <계정>",
+     "예산 · 알림 (없으면 AWS Settings → Billing 의 spend limit 확인)"
+    ]
+   ],
+   "checks": [
+    "budgets",
+    "power"
+   ]
+  },
+  {
+   "id": "observe",
+   "no": 10,
+   "icon": "fa-chart-line",
+   "title": "모니터링 연계",
+   "eval": "전문성 · 모니터링 스택",
+   "shared": "모니터링 담당과 공동",
+   "pitch": "AWS 노드도 온프레미스와 같은 지표로 같은 Grafana 에 보입니다.",
+   "why": "대기 사이트가 살아 있는지 모르면 장애 때 이어받을 수 있는지도 모른다.",
+   "aws": [
+    "node-exporter 9100",
+    "mysqld_exporter 9104",
+    "kube-state-metrics 30810",
+    "CloudWatch 기본 지표"
+   ],
+   "setup": [
+    [
+     "cloud/infra/node/common.sh",
+     "VPN 가입 스크립트가 node-exporter 설치"
+    ],
+    [
+     "deploy/aws/kube-state-metrics.yaml",
+     "온프레미스와 같은 KSM (Secret 제외)"
+    ],
+    [
+     "cloud/infra/node/monitoring-kubeconfig.sh",
+     "모니터링 담당용 읽기 전용 kubeconfig (Secret · exec · proxy 없음)"
+    ]
+   ],
+   "verify": [
+    [
+     "curl -s http://100.64.0.81:9100/metrics | head",
+     "node_ 지표 응답 (VPN 안에서)"
+    ],
+    [
+     "Prometheus 대상 (모니터링 사이트)",
+     "t8 대상 up"
+    ]
+   ],
+   "checks": []
+  }
+ ],
+ "checklist": [
+  {
+   "step": "켜기",
+   "do": "bash cloud/infra/up.sh",
+   "expect": "vm1 · vm2 running · SSM Online",
+   "check": "power"
+  },
+  {
+   "step": "접속",
+   "do": "aws ssm start-session --target <vm1 id>",
+   "expect": "duck-admin / duck-view 로 들어감",
+   "check": "ssm_online"
+  },
+  {
+   "step": "네트워크",
+   "do": "보안그룹 입력 확인",
+   "expect": "udp/41641 하나",
+   "check": "sg_ingress"
+  },
+  {
+   "step": "IAM",
+   "do": "bash cloud/infra/iam/team-roles3.sh check",
+   "expect": "역할 6개 · 사용자 0명",
+   "check": "team_roles"
+  },
+  {
+   "step": "IMDSv2",
+   "do": "describe-instances MetadataOptions",
+   "expect": "모두 required",
+   "check": "imds_v2"
+  },
+  {
+   "step": "역할 준비",
+   "do": "운영 콘솔 메쉬 카드 'AWS 역할 준비' 승인",
+   "expect": "복제본 · 앱 계정 · Secret 4종",
+   "check": ""
+  },
+  {
+   "step": "복제",
+   "do": "상태 페이지 2차 조치",
+   "expect": "복제 정상 · 지연 ≤ 60초",
+   "check": ""
+  },
+  {
+   "step": "Argo",
+   "do": "37_argo_site.sh status",
+   "expect": "rsv-aws Synced · off",
+   "check": ""
+  },
+  {
+   "step": "2차 시험",
+   "do": "35_dr_drill.sh",
+   "expect": "승격 · 복귀 시간 기록 → 발표 RTO",
+   "check": ""
+  },
+  {
+   "step": "끄기",
+   "do": "bash cloud/infra/down.sh",
+   "expect": "과금 고정비만",
+   "check": "power"
+  }
+ ],
+ "presentation": {
+  "event": {
+   "talk": "2026-10-29T11:00:00+09:00",
+   "submit": "2026-10-28T18:00:00+09:00",
+   "part": "PART 1 · AWS (5분)"
+  },
+  "must": [
+   {
+    "id": "rto",
+    "title": "RTO 실측",
+    "how": "bash ~/duckcloud-infra/35_dr_drill.sh — 온프레미스 DB 정지 → AWS 승격 · 복귀 시간 기록 → 슬라이드 6 · 스크립트에 숫자",
+    "check": "",
+    "owner": "pm-aws"
+   },
+   {
+    "id": "power",
+    "title": "시연 기간 AWS 켜 두기",
+    "how": "bash cloud/infra/up.sh → 10분 뒤 운영 콘솔 'AWS 역할 준비' 승인 → 복제 지연 0초",
+    "check": "power",
+    "owner": "pm-aws"
+   },
+   {
+    "id": "t3",
+    "title": "온프레미스 대기 t3 Healthy",
+    "how": "sudo bash ~/duckcloud-infra/37_argo_site.sh unlock 3 → --apply (읽기 전용 · 복제 중일 때만)",
+    "check": "",
+    "owner": "site1-ops"
+   },
+   {
+    "id": "argo",
+    "title": "Argo rsv-aws Synced",
+    "how": "sudo bash ~/duckcloud-infra/37_argo_site.sh status",
+    "check": "",
+    "owner": "iac"
+   },
+   {
+    "id": "imds",
+    "title": "IMDSv2 두 노드",
+    "how": "10-23 vm1 적용 완료",
+    "check": "imds_v2",
+    "owner": "pm-aws"
+   },
+   {
+    "id": "budget",
+    "title": "월 예산 $20",
+    "how": "10-23 duckcloud-monthly 생성 — 메일 알림은 콘솔 Budgets 에서 추가",
+    "check": "budgets",
+    "owner": "pm-aws"
+   },
+   {
+    "id": "ebs",
+    "title": "EBS 암호화",
+    "how": "enable-ebs-encryption-by-default + bash cloud/infra/encrypt-root.sh vm2 --apply → vm1 (노드당 10~20분) — 못 하면 '남은 과제'로 발표",
+    "check": "ebs_encryption",
+    "owner": "pm-aws"
+   },
+   {
+    "id": "roles",
+    "title": "담당 역할 정책 시뮬레이션",
+    "how": "관리 사이트 기능 2 — 리전 문맥 포함 시뮬레이터",
+    "check": "team_role_policy",
+    "owner": "site1-security"
+   },
+   {
+    "id": "otp",
+    "title": "OTP * 표시 확인",
+    "how": "관리 사이트 로그인 → 과금 탭 → 코드가 ****** 로만 보이는지 (화면 공유 시연 전)",
+    "check": "",
+    "owner": "pm-aws"
+   },
+   {
+    "id": "harbor",
+    "title": "노출된 Harbor 로봇 Secret 재발급",
+    "how": "Harbor → duckcloud → 로봇 k8s-pull 재발급 → .harbor-pull 둘째 줄 → 37_argo_site.sh pullsecret 3",
+    "check": "",
+    "owner": "iac"
+   },
+   {
+    "id": "deliver",
+    "title": "산출물 제출 (10-28 18:00)",
+    "how": "PPT + PDF · 소스(Git) · 개인/팀 일지 · 시연 영상 5~10분(음성, 100MB 이하)",
+    "check": "",
+    "owner": "pm-aws"
+   },
+   {
+    "id": "down",
+    "title": "발표 · 시연 뒤 끄기",
+    "how": "bash cloud/infra/down.sh (발표 뒤 전체 삭제는 destroy.sh 목록 확인 후)",
+    "check": "",
+    "owner": "pm-aws"
+   }
+  ],
+  "slides": [
+   [
+    1,
+    "PART 1 목표 — AWS",
+    "0:50",
+    "온프레미스(t3 · t5)가 모두 멈추면, AWS 가 진료를 이어받는다 · 필요성 기술 3개"
+   ],
+   [
+    2,
+    "01 온프레미스 전체 장애 판정",
+    "1:05",
+    "감시 30초 → 5분 무응답 → 증인 확인 → 펜싱"
+   ],
+   [
+    3,
+    "02 끊기지 않는 복제",
+    "0:55",
+    "t5 ⇄ t3 GTID → AWS 복제본 · RPO ≤ 60초 (켜져 있을 때)"
+   ],
+   [
+    4,
+    "03 같은 서비스, 같은 입구",
+    "1:00",
+    "Argo rsv-aws off → active · 공개 입구 전환 · 3분 정상이면 복귀"
+   ],
+   [
+    5,
+    "04 닫아 두고, 꺼 둔다",
+    "0:35",
+    "입력 포트 1개 · SSH 없음 · IMDSv2 · 월 $8 (꺼진 동안은 온프레미스 안 전환이 방어)"
+   ],
+   [
+    6,
+    "정리 → 시연",
+    "0:20",
+    "판정 · 데이터 · 서비스 → 시연 (RTO 실측값)"
+   ]
+  ],
+  "numbers": [
+   [
+    "30초",
+    "DR 판정 주기",
+    "ops/hsagent/mesh.py INTERVAL = 30"
+   ],
+   [
+    "5분",
+    "온프레미스 전체 무응답 → 승격 시작",
+    "mesh.py FAILOVER_SEC = 300"
+   ],
+   [
+    "3분",
+    "온프레미스 회복 → 자동 복귀",
+    "mesh.py FAILBACK_SEC = 180"
+   ],
+   [
+    "≤ 60초",
+    "RPO — 승격 후보 복제 지연 상한",
+    "mesh.py lag ≤ 60"
+   ],
+   [
+    "udp/41641 1개",
+    "바깥 입력 포트",
+    "cloud/infra/compute.yaml AwsSiteSecurityGroup"
+   ],
+   [
+    "$0.063/h",
+    "두 노드 켜진 시간당 (IPv4 포함)",
+    "이 화면 상단 · billing.py"
+   ],
+   [
+    "월 약 $8 / $52",
+    "꺼 둠 기준 / 상시 가동",
+    "README 요금표 · EBS $4 + 스냅숏 $2.3 + 약 30시간"
+   ],
+   [
+    "역할 6개 · 사용자 0명",
+    "IAM",
+    "cloud/infra/iam/team-roles3.sh"
+   ]
+  ],
+  "qa": [
+   [
+    "꺼져 있을 때 온프레미스가 다 죽으면?",
+    "그동안은 AWS 가 이어받지 못한다 — 온프레미스 안 전환(t5 ↔ t3)이 방어. DR 대기가 필요한 기간에만 켬, 상시면 월 약 $52"
+   ],
+   [
+    "RTO 는?",
+    "감지 5분 + 승격 · 기동 · 입구 전환 — 35_dr_drill.sh 실측값으로"
+   ],
+   [
+    "두 곳이 동시에 쓰면?",
+    "증인 확인으로 오판 보류 · 승격 전 온프레미스 앱 계정 잠금(펜싱)"
+   ],
+   [
+    "왜 시드니?",
+    "프로젝트 지정 리전 하나만 사용 가능 · 장소 분리 · 복제 지연은 승격 조건으로 감시"
+   ],
+   [
+    "왜 EKS · RDS 가 아닌가?",
+    "EKS 컨트롤 플레인 월 약 $73 과함 · RDS 는 온프레미스로 되돌리는 역방향 복제 체인이 까다로움"
+   ],
+   [
+    "팀원 권한은 강제되나?",
+    "초대 세션은 관리자 — 담당 역할은 좁은 권한 약속 · 기록. 서버 안은 SSM RunAs 로 duck-admin / duck-view 강제"
+   ]
+  ],
+  "limits": [
+   "평소 꺼 두면 그 기간은 AWS DR 공백 — 비용과 대기 수준을 맞바꾼 선택",
+   "RTO 는 실측 전 — 시연 전 1회 측정",
+   "담당 IAM 역할은 약속 · 기록 (관리자 초대 세션 구조)",
+   "판정 서버(ctl) 단일 — 죽으면 승격 안 됨(안전한 쪽으로 실패)",
+   "EBS 루트 암호화 — 교체 스크립트 준비, 실행 여부는 점검표 참고"
+  ],
+  "files": [
+   [
+    "5분 덱",
+    "~/Documents/KT_CI5/AWS_발표_5분_v3.pptx · .pdf"
+   ],
+   [
+    "스크립트",
+    "~/Documents/KT_CI5/AWS_발표_5분_v3_스크립트.txt"
+   ],
+   [
+    "질의응답 분석",
+    "~/Documents/KT_CI5/AWS_발표_종합QA분석.md"
+   ],
+   [
+    "전체 구성 분석",
+    "~/Documents/KT_CI5/DuckCloud_전체구성_분석.md"
+   ]
+  ]
+ }
+}

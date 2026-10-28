@@ -1,0 +1,62 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DuckCloud 과금 · 콘솔</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>
+:root{--bg:#0b1020;--side:#0f172a;--panel:#111827;--line:#1f2937;--text:#e5e7eb;--mute:#94a3b8;--amber:#f59e0b;--cy:#67e8f9;--ok:#34d399;--bad:#fb7185}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+a{color:inherit;text-decoration:none}
+.top{height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0f172acc}
+.brand{font-weight:800;color:var(--amber);white-space:nowrap}.brand small{color:var(--mute);font-weight:400;margin-left:8px;font-size:12px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.pill{padding:3px 8px;border-radius:999px;border:1px solid #334155;font-size:11px}.pill.ro{border-color:#9f1239;color:#fecdd3;background:#4c0519}.pill.rw{border-color:#065f46;color:#a7f3d0;background:#022c22}
+.btn{padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;cursor:pointer}
+.wrap{display:flex;height:calc(100% - 52px)}
+nav.side{width:280px;min-width:280px;background:var(--side);border-right:1px solid var(--line);overflow-y:auto;padding:10px 8px 24px}
+details{margin:2px 0}summary{list-style:none;cursor:pointer;padding:7px 10px;border-radius:8px;font-weight:700;font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}summary:hover{background:#1e293b}summary .car{margin-left:auto;color:var(--mute);transition:transform .15s}details[open]>summary .car{transform:rotate(90deg)}
+.lv1{margin-left:12px;border-left:1px solid #1f2937;padding-left:6px}.lv2{margin-left:10px;border-left:1px dashed #1f2937;padding-left:6px}
+.item{display:block;padding:5px 10px;border-radius:7px;font-size:13px;color:#cbd5e1;cursor:pointer}.item:hover{background:#1e293b;color:#fff}
+.item.on{background:var(--amber);color:#111;font-weight:700}.item.top{font-weight:700;font-size:13px;color:#e2e8f0;padding:7px 10px;margin:2px 0}.item.off{color:#64748b;cursor:not-allowed;text-decoration:line-through}.item.off:hover{background:none;color:#64748b}.lv2 .item{font-size:12px;color:#a5b4c3}
+details.sub>summary{font-weight:600;font-size:13px;color:#cbd5e1}
+main.body{flex:1;min-width:0;position:relative}iframe{width:100%;height:100%;border:0;background:#020617;display:block}
+.crumb{position:absolute;top:0;right:0;z-index:2;display:flex;gap:6px;padding:6px}
+#menuBtn{display:none}
+@media (max-width:860px){nav.side{position:fixed;z-index:20;top:52px;bottom:0;left:0;transform:translateX(-100%);transition:transform .2s}nav.side.open{transform:none}#menuBtn{display:inline-block}.brand small{display:none}}
+.login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.login input{width:100%;padding:10px;margin-top:10px;border-radius:9px;border:1px solid #334155;background:#020617;color:#e5e7eb;font-size:15px}
+.login button{width:100%;margin-top:14px;padding:10px;border:0;border-radius:9px;background:var(--amber);font-weight:800;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:1.3em;margin-top:8px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+.k{font-size:11px;color:var(--mute)}.v{font-size:22px;font-weight:800;margin-top:4px}.s{font-size:11px;color:var(--mute);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute)}
+.ok{color:var(--ok)}.mute{color:var(--mute)}.cy{color:var(--cy)}.amb{color:var(--amber)}.bad{color:var(--bad)}h2{font-size:14px;margin:18px 0 8px}
+</style><script>(function(){var lg=/^\/_(login|otp)$/.test(location.pathname);if(lg){if(window.top!==window.self){window.top.location.href=location.href}return}var go=function(){try{window.top.location.href='/master'}catch(e){location.href='/master'}};var f=window.fetch;if(f&&!f.__duck){window.fetch=function(){return f.apply(this,arguments).then(function(r){if(r.status===401)go();return r})};window.fetch.__duck=1}})();</script></head><body><div class="top"><div style="display:flex;align-items:center;gap:8px"><button id="menuBtn" class="btn" onclick="document.querySelector('nav.side').classList.toggle('open')">☰</button>
+<div class="brand">🦆 DuckCloud 과금 · 콘솔 <small>duckcloud-master · 팀 VPN 전용</small></div></div>
+<div class="who"><span class="pill rw">팀 VPN · 제어 가능</span><span>viewer@example.org</span><a id="newwin" class="btn" href="#" target="_blank" rel="noopener">새 창</a><a class="btn" href="/master">로그아웃</a></div></div>
+<div class="wrap"><nav class="side"><details open><summary><i class="fa-solid fa-coins" style="width:16px;color:#f59e0b"></i>과금 관리<span class="car">›</span></summary><div class="lv1"><a class="item" data-href="/aws/#billingPanel" onclick="go(this)">과금 ON/OFF</a><a class="item" data-href="/aws/" onclick="go(this)">AWS 노드 · 전원</a><a class="item" data-href="/master/excluded/billing-history" onclick="go(this)">과금 명세</a></div></details><details open><summary><i class="fa-solid fa-book" style="width:16px;color:#f59e0b"></i>과금 근거<span class="car">›</span></summary><div class="lv1"><a class="item" data-href="/aws/aws-services#svc" onclick="go(this)">서비스별 과금</a><a class="item" data-href="/aws/aws-services#tech=finops" onclick="go(this)">FinOps</a><a class="item" data-href="/aws/aws-connection" onclick="go(this)">AWS 권한</a></div></details><details open><summary><i class="fa-solid fa-terminal" style="width:16px;color:#f59e0b"></i>콘솔<span class="car">›</span></summary><div class="lv1"><a class="item" data-href="/master/excluded/console" onclick="go(this)">VM · 터미널</a></div></details><a class="item top" data-href="/master/excluded/entry" onclick="go(this)"><i class="fa-solid fa-diagram-project" style="width:16px;color:#f59e0b"></i> 메쉬 제어</a></nav><main class="body" id="frames"></main></div><script>
+// 화면마다 프레임 하나 — 처음 열 때만 불러오고(추가 로드), 다시 오면 그대로 보인다. 로그인 세션(쿠키)은 모든 프레임이 같이 쓴다.
+//   지금 보이는 프레임이 id/name "f" (OTP 확인 등 target="f"). 오래 안 본 화면은 8개를 넘으면 닫는다. 같은 메뉴를 다시 누르면 새로 불러온다.
+const box = document.getElementById('frames'), FR = new Map(), MAXF = 8;
+let cur = null;
+function frame(h){
+  let x = FR.get(h);
+  if (!x) {
+    x = document.createElement('iframe'); x.title = '본문'; x.src = h; x.style.display = 'none'; box.appendChild(x); FR.set(h, x);
+    if (FR.size > MAXF) { const [old, of] = FR.entries().next().value; if (of !== cur) { of.remove(); FR.delete(old); } }
+  } else { FR.delete(h); FR.set(h, x); }       // 최근 순
+  return x;
+}
+function open_(h, reload){
+  if (!h) return;
+  const x = frame(h);
+  if (reload && x === cur) x.src = h;
+  FR.forEach(o => { o.style.display = o === x ? 'block' : 'none'; if (o !== x && o.id === 'f') { o.id = ''; o.name = ''; } });
+  x.id = 'f'; x.name = 'f'; cur = x;
+  try { x.contentWindow.postMessage('duck:shown', location.origin); } catch (e) {}
+  document.getElementById('newwin').href = h; mark(h); history.replaceState(null, '', '#' + encodeURIComponent(h)); document.querySelector('nav.side').classList.remove('open');
+}
+function mark(h){ document.querySelectorAll('.item[data-href]').forEach(a => a.classList.toggle('on', a.dataset.href === h)); }
+function go(a){ open_(a.dataset.href, true); }
+const start = decodeURIComponent((location.hash || '').slice(1)) || '/aws/#billingPanel';
+open_(start.startsWith('/') ? start : '/aws/#billingPanel');
+// 세션 만료 → 창 전체 로그인 (프레임 안 부분 로그인 없음)
+function chk(){ fetch('/master/_ping', {cache: 'no-store'}).then(r => { if (r.status === 401) location.href = '/master'; }).catch(() => {}); }
+setInterval(chk, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) chk(); }); box.addEventListener('load', chk, true);
+</script></body></html>

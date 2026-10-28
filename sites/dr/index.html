@@ -1,0 +1,223 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DuckCloud DR 현황</title><style>:root{--bg:#f6f7f9;--card:#fff;--fg:#1d2330;--muted:#667085;--line:#e4e7ec;--acc:#2f5bd3;--ok:#12805c;--warn:#b54708;--bad:#c01048}
+@media (prefers-color-scheme:dark){:root{--bg:#11141a;--card:#181c24;--fg:#e6e8ee;--muted:#98a2b3;--line:#2a303b;--acc:#7c9cff;--ok:#3ccb8f;--warn:#f5a454;--bad:#f2678e}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+a{color:var(--acc)}.muted{color:var(--muted);font-size:13px}.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.wrap{max-width:520px;margin:12vh auto;padding:0 16px}.brand{font-size:26px;font-weight:700;margin:0 0 4px}
+.btn{display:flex;justify-content:space-between;align-items:center;width:100%;padding:18px 20px;margin-top:14px;border-radius:12px;
+ border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-size:17px;text-decoration:none;cursor:pointer}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}.btn[aria-disabled=true]{cursor:default;opacity:.85}
+.pill{font-size:12px;padding:2px 10px;border-radius:99px;border:1px solid currentColor}
+form{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin-top:18px}
+input{width:100%;font:inherit;padding:9px 10px;margin:6px 0 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+button{width:100%;font:inherit;padding:10px;border:0;border-radius:8px;background:var(--acc);color:#fff;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:1.3em;margin-top:8px}:root{--hot:#12805c;--rp:#7c3aed}@media (prefers-color-scheme:dark){:root{--hot:#3ccb8f;--rp:#a78bfa}}
+html,body{height:100%}body{overflow:hidden}
+.db{height:100vh;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:8px;padding:8px 14px 10px;max-width:1680px;margin:0 auto}
+.db .top{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}.db h1{font-size:19px;margin:0}
+.db .top .r{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.cardx{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:0;display:flex;flex-direction:column}
+.cardx h2{font-size:13px;margin:0 0 6px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.cardx h2 small{font-weight:400;color:var(--muted);font-size:11.5px}
+.fill{flex:1;min-height:0;overflow:hidden}
+.hero{display:grid;grid-template-columns:auto minmax(220px,.9fr) minmax(0,1.6fr) auto;gap:6px 16px;align-items:center;padding:8px 12px}
+.lamp{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:20px;color:#fff;background:var(--ok)}
+.lamp.DR1,.lamp.RECOVERING{background:var(--warn)}.lamp.DR2{background:var(--bad)}.lamp.RECOVERED{background:var(--acc)}
+.hero .ph{font-size:20px;font-weight:800;line-height:1.25}.hero .ds{color:var(--muted);font-size:12.5px;line-height:1.4}
+.hero .kv{text-align:right;font-size:12px;color:var(--muted);line-height:1.5}.hero .kv b{color:var(--fg)}
+.tl{display:grid;grid-template-columns:repeat(5,1fr)}
+.st{position:relative;text-align:center;padding:26px 2px 0;line-height:1.3}.st:before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:4px;background:var(--line)}
+.st:first-child:before{display:none}.st.done:before,.st.cur:before{background:var(--ok)}
+.st i{position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;background:var(--card);border:3px solid var(--line);font-style:normal;font-size:11px;font-weight:700;line-height:18px;color:var(--muted);z-index:1}
+.st.done i{border-color:var(--ok);background:var(--ok);color:#fff}.st.cur i{border-color:var(--acc);background:var(--acc);color:#fff;animation:pl 1.6s infinite}
+.st b{display:block;font-size:13px}.st span{font-size:11px;color:var(--muted)}.st.cur b{color:var(--acc)}.st .tr{font-size:10.5px;color:var(--muted)}
+@keyframes pl{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 45%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1fr);gap:8px;min-height:0}
+.col{display:grid;gap:8px;min-height:0}.col.l{grid-template-rows:minmax(0,1fr) auto}.col.r{grid-template-rows:auto minmax(0,1fr)}
+#fl{flex:1;min-height:0;display:flex;align-items:center}#dfl{width:100%;height:100%;max-height:100%;display:block}
+#dfl text{fill:var(--fg);font-size:19px;font-weight:700;text-anchor:middle}#dfl text.s{fill:var(--muted);font-size:14.5px;font-weight:500}
+#dfl .bx{fill:var(--bg);stroke:var(--line);stroke-width:2}#dfl .on .bx{stroke:var(--ok);stroke-width:3}#dfl .sb .bx{stroke:var(--acc);stroke-dasharray:6 4}
+#dfl .off .bx{stroke:var(--bad);stroke-width:2.6;fill:color-mix(in srgb,var(--bad) 8%,var(--bg))}#dfl .warn .bx{stroke:var(--warn);stroke-width:2.6}
+#dfl .e{fill:none;stroke:var(--line);stroke-width:2.4}#dfl .hot{fill:none;stroke:var(--hot);stroke-width:4;stroke-dasharray:10 8;animation:mv 1s linear infinite}
+#dfl .rp{fill:none;stroke:var(--rp);stroke-width:2.6;stroke-dasharray:4 5;animation:mv 1.4s linear infinite}#dfl .rp.no{stroke:var(--muted);opacity:.5;animation:none}
+#dfl .tag{font-size:14.5px;font-weight:700}#dfl .b-on{fill:var(--ok)}#dfl .b-sb{fill:var(--acc)}#dfl .b-off{fill:var(--bad)}#dfl .b-warn{fill:var(--warn)}
+@keyframes mv{to{stroke-dashoffset:-36}}
+.agree{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.agree .pill{font-size:11.5px}
+.pipe{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;justify-content:space-between;height:100%}
+.pipe li{position:relative;padding:0 0 0 36px;flex:1;min-height:0}.pipe li:before{content:"";position:absolute;left:12px;top:26px;bottom:2px;width:2px;background:var(--line)}.pipe li:last-child:before{display:none}
+.pipe .n{position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:var(--muted)}
+.pipe .ok .n{background:var(--ok)}.pipe .warn .n{background:var(--warn)}.pipe .bad .n{background:var(--bad)}
+.pipe .h{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;line-height:1.3}.pipe .h b{font-size:13.5px}.pipe .h small{color:var(--muted);font-size:11px}
+.pipe .m{font-size:13px;font-weight:600;line-height:1.35}.pipe .ok .m{color:var(--ok)}.pipe .warn .m{color:var(--warn)}.pipe .bad .m{color:var(--bad)}
+.pipe .s{font-size:11.5px;color:var(--muted);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.chk{list-style:none;margin:0;padding:0}.chk li{display:grid;grid-template-columns:20px 1fr;gap:0 6px;padding:4px 0;border-bottom:1px solid var(--line);line-height:1.35}.chk li:last-child{border:0}
+.chk .cm{font-weight:800;font-size:14px;text-align:center;grid-row:span 2}.chk .y{color:var(--ok)}.chk .x{color:var(--bad)}.chk .q{color:var(--muted)}
+.chk b{font-size:12.5px}.chk .cd{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.verdict{margin-top:6px;padding:5px 10px;border-radius:8px;font-weight:700;font-size:12.5px;border:1px solid currentColor}
+.sites{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.sc{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--bg);line-height:1.35}
+.sc.on{border:2px solid var(--ok)}.sc.off{border:2px solid var(--bad)}.sc.warn{border:2px solid var(--warn)}
+.sc .h{display:flex;justify-content:space-between;gap:6px;align-items:baseline}.sc .h b{font-size:13px}.sc .w{font-size:11.5px;font-weight:700}
+.sc.on .w{color:var(--ok)}.sc.off .w{color:var(--bad)}.sc.warn .w{color:var(--warn)}.sc.sb .w{color:var(--acc)}
+.dots{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:11.5px}.dots i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:3px;background:var(--bad)}.dots i.y{background:var(--ok)}
+.sc .r{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev{list-style:none;margin:0;padding:0}.ev li{display:grid;grid-template-columns:76px 1fr auto;gap:6px;padding:4px 0;border-bottom:1px solid var(--line);font-size:11.5px;line-height:1.35}
+.ev .tt{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ev .lv{font-size:10px;font-weight:700;padding:0 5px;border-radius:99px;border:1px solid currentColor;height:fit-content}.ev .SUCCESS{color:var(--ok)}.ev .CRITICAL,.ev .FAIL{color:var(--bad)}.ev .WARN{color:var(--warn)}.ev .INFO{color:var(--acc)}
+.ev .tm{color:var(--muted);font-variant-numeric:tabular-nums}
+.ctl{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(260px,.9fr);gap:10px;align-items:stretch;padding:8px 12px}
+.ctl .lk{display:flex;flex-direction:column;gap:4px;justify-content:center;font-size:12px}.ctl .lk b{font-size:13px}
+.ctl .lk .row{display:flex;gap:6px}.ctl input{width:120px;margin:0;padding:5px 8px;font-size:13px}
+.ctl button{width:auto;padding:6px 10px;font-size:13px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;white-space:nowrap}
+.ctl button:disabled{opacity:.45;cursor:not-allowed}.ctl .unlock{background:var(--acc);border-color:var(--acc);color:#fff}
+.scn{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px}
+.scn button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 10px;text-align:left;white-space:normal;line-height:1.3}
+.scn button b{font-size:13.5px}.scn button span{font-size:11px;color:var(--muted)}
+.scn button.next{border:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--bg))}.scn button.next b{color:var(--acc)}
+.scn button.done b{color:var(--ok)}.scn button.reset{align-items:center;justify-content:center}
+.con{background:#0d1117;color:#c9d1d9;border-radius:8px;padding:6px 10px;font:11.5px/1.45 ui-monospace,Menlo,monospace;overflow:hidden;display:flex;flex-direction:column;min-height:0;max-height:96px}
+.con .hd{display:flex;justify-content:space-between;color:#8b949e;font-size:11px}.con pre{margin:0;white-space:pre-wrap;overflow:auto;flex:1;min-height:0}
+.busy{color:var(--warn);font-weight:700}
+@media (max-width:1000px),(max-height:600px){body{overflow:auto}.db{height:auto}.main,.hero,.ctl,.scn{grid-template-columns:1fr}.hero .kv{text-align:left}
+ .col.l,.col.r{grid-template-rows:auto}.sites{grid-template-columns:1fr}#dfl{height:auto}.fill{overflow:visible}.st span,.st .tr{display:none}}</style></head><body><div class="db"><div class="top"><h1>DuckCloud DR 현황</h1><span class="muted">온프레미스 t3 → t5 (1차 DR) → AWS t8 (2차 DR) → t3 복구</span><div class="r"><span id="at">불러오는 중</span><span id="src"></span><a href="/">서비스 상태 ↗</a><a href="/#drlog">DR 로그 ↗</a></div></div><div class="cardx hero"><div id="lamp" class="lamp">·</div><div><div id="ph" class="ph">확인 중</div><div id="ds" class="ds"></div></div><div id="tl" class="tl"></div><div id="kv" class="kv"></div></div><div class="main"><div class="col l"><div class="cardx"><h2>지금 요청이 가는 길 <small>초록 점선 = 사용자 요청 · 보라 점선 = DB 복제 (원본 → 대기)</small></h2><div id="fl"></div><div id="ag" class="agree"></div></div><div id="ss" class="sites"></div></div><div class="cardx"><h2>판정 흐름 <small>감지 → 판정 → 대상 선정 → 실행 연계 → 검증</small></h2><ul id="pp" class="pipe fill"></ul></div><div class="col r"><div class="cardx"><h2><span id="ckt">기대 동작</span> <small>시나리오 정의 vs 실측</small></h2><div id="ck"></div></div><div class="cardx"><h2>최근 DR 이벤트</h2><div id="ev" class="fill"></div></div></div></div><div class="cardx ctl"><div class="lk"><b>🎬 시연 시나리오</b><span id="lkst">🔒 제어 잠김</span><div id="lkrow" class="row"><input id="pw" type="password" placeholder="비밀번호" autocomplete="off"><button class="unlock" onclick="unlock()">해제</button></div></div><div class="scn"><button id="scn1" onclick="runScn(1)" title="t3 모의 장애 → 1단계 DR → t5 활성화" disabled><b>① t3 다운 → t5</b><span>1차 DR 발동</span></button><button id="scn2" onclick="runScn(2)" title="t5 모의 장애 → 2단계 DR → AWS 활성화" disabled><b>② t5 다운 → AWS</b><span>2차 DR 발동</span></button><button id="scn3" onclick="runScn(3)" title="t3 정상 가동 → AWS 를 원본으로 복제 재합류" disabled><b>③ t3 복구</b><span>AWS → t3 역방향 복제</span></button><button id="scn4" onclick="runScn(4)" title="t3 정상 · 동기화 확인 → t3 승격 복귀" disabled><b>④ t3 주 서버 복귀</b><span>무중단 페일백</span></button><button id="scnR" class="reset" onclick="drill('reset', '♻️ 리셋 (t3 운영 · 시작 상태)')" title="t3 운영 · t5/AWS 는 t3 를 원본으로 복제 · 모의 장애 해제" disabled>♻️ 리셋</button></div><div class="con"><div class="hd"><span id="conh">실행 기록</span><span id="cont"></span></div><pre id="conp">다음 단계 버튼만 눌립니다 (순서: ① → ② → ③ → ④). 실행 결과와 소요 시간이 여기에 표시되고, 위 화면이 바로 갱신됩니다.</pre></div></div></div><script>
+const PH = [["NORMAL","평시","t3 운영",""],["DR1","1차 DR","t5 운영","t3 장애"],["DR2","2차 DR","AWS 운영","t5 장애"],
+            ["RECOVERING","복구 진행","AWS → t3 복제","t3 정상화"],["RECOVERED","복구 완료","t3 운영 복귀","페일백"]];
+const DESC = {NORMAL:"온프레미스 t3 가 병원 서비스를 운영 중입니다. t5 는 1차 DR, AWS t8 은 2차 DR(Pilot Light)로 복제를 받으며 대기합니다.",
+  DR1:"t3 장애가 확정되어 1차 DR 이 발동했습니다 — 온프레미스 t5 가 DB 쓰기 승격 후 서비스를 이어받았습니다. AWS 는 t5 를 따라 복제하며 대기합니다.",
+  DR2:"t3 · t5 가 모두 중단되어 2차 DR 이 발동했습니다 — AWS t8 이 DB 쓰기 승격 후 병원 서비스를 운영 중입니다.",
+  RECOVERING:"t3 가 정상화되어 AWS 를 원본으로 역방향 복제(재합류) 중입니다. AWS 는 무중단으로 서비스를 유지합니다.",
+  RECOVERED:"t3 로 페일백이 끝났습니다 — t3 가 다시 운영하고, t5 · AWS 는 t3 를 원본으로 재합류해 평시 대기로 돌아왔습니다."};
+const ICON = {NORMAL:"✓",DR1:"1",DR2:"2",RECOVERING:"↺",RECOVERED:"✓"};
+const NEXT_SCN = {NORMAL:1, RECOVERED:1, DR1:2, DR2:3, RECOVERING:4};
+const NM = {t3:"t3",t5:"t5",aws:"AWS"};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = id => document.getElementById(id);
+let V = null, running = false, pass = "";
+try { pass = sessionStorage.getItem("duck_dr_pass") || ""; } catch (e) {}
+
+function timeline(v){
+  const ix = PH.findIndex(p => p[0] === v.phase);
+  return PH.map((p,i) => `<div class="st ${i < ix ? "done" : i === ix ? "cur" : ""}"><i>${i < ix ? "✓" : i+1}</i><b>${p[1]}</b><span>${p[2]}</span>${p[3] ? `<div class="tr">← ${p[3]}</div>` : ""}</div>`).join("");
+}
+
+function flowSvg(v){
+  const S = v.sites, Y = {t3:16, t5:158, aws:300}, H = 84, MID = 200, act = v.act;
+  const node = (x,y,w,h,cls,t,s,b,bc) => `<g class="${cls}"><rect class="bx" x="${x}" y="${y}" width="${w}" height="${h}" rx="12"/>
+    <text x="${x+w/2}" y="${y+(s?28:h/2+6)}">${esc(t)}</text>${s ? `<text class="s" x="${x+w/2}" y="${y+50}">${esc(s)}</text>` : ""}
+    ${b ? `<text class="tag ${bc}" x="${x+w/2}" y="${y+h-10}">${esc(b)}</text>` : ""}</g>`;
+  let o = "";
+  const axis = `M120 ${MID} H140 M270 ${MID} H290 M420 ${MID} H440`;
+  o += `<path class="e" d="${axis}"/><path class="hot" d="${axis}"/>`;
+  for (const k of ["t3","t5","aws"]) {                       // DR 컨트롤 → 사이트 (활성 선로만 강조)
+    const d = `M590 ${MID} C 625 ${MID}, 625 ${Y[k]+H/2}, 660 ${Y[k]+H/2}`;
+    o += `<path class="e" d="${d}"/>` + (k === act ? `<path class="hot" d="${d}"/>` : "");
+  }
+  let off = 0;                                               // 복제 (원본 → 대기) — 오른쪽 곡선
+  for (const k of ["t3","t5","aws"]) {
+    const r = S[k].repl; if (!r || !r.src || !(r.src in Y)) continue;
+    const y1 = Y[r.src]+H/2, y2 = Y[k]+H/2, bend = 905 + (off++)*30, live = r.io && r.sql;
+    o += `<path class="rp ${live ? "" : "no"}" d="M870 ${y1} C ${bend} ${y1}, ${bend} ${y2}, 876 ${y2}" marker-end="url(#ar)"/>`;
+    o += `<text class="s" x="${bend+4}" y="${(y1+y2)/2+5}" style="text-anchor:start">${live ? "복제" : "중단"}</text>`;
+  }
+  o += node(10,MID-38,110,76,"on","사용자","병원 예약");
+  o += node(140,MID-38,130,76,"on","Cloudflare","DNS · 터널");
+  o += node(290,MID-38,130,76,"on","게이트웨이","S1 · S2");
+  o += node(440,MID-48,150,96, v.busy ? "warn" : "on","DR 컨트롤", v.mode === "auto" ? "자동 판정" : "수동 판정", v.busy ? "전환 진행 중" : "→ " + NM[act], v.busy ? "b-warn" : "b-on");
+  const BC = {on:"b-on", sb:"b-sb", off:"b-off", warn:"b-warn"};
+  for (const k of ["t3","t5","aws"]) {
+    const s = S[k];
+    o += node(660,Y[k],210,H,s.state,s.name, s.role + (s.writer ? " · DB 쓰기" : ""), s.word, BC[s.state]);
+  }
+  return `<svg id="dfl" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="DR 흐름도"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--rp)"/></marker></defs>${o}</svg>`;
+}
+
+function pipe(v){
+  return v.flow.map((f,i) => `<li class="${f.st}"><span class="n">${i+1}</span><div class="h"><b>${esc(f.t)}</b><small>${esc(f.who)}</small></div>
+    <div class="m">${esc(f.main)}</div><div class="s">${esc(f.sub || "-")}</div></li>`).join("");
+}
+
+function checks(v){
+  const li = v.expect.map(c => `<li><span class="cm ${c.ok === true ? "y" : c.ok === false ? "x" : "q"}">${c.ok === true ? "✓" : c.ok === false ? "✕" : "?"}</span><b>${esc(c.t)}</b><span class="cd" title="${esc(c.d)}">${esc(c.d)}</span></li>`).join("");
+  const n = v.expect.length, y = v.expect.filter(c => c.ok === true).length, x = v.expect.filter(c => c.ok === false).length;
+  const cls = x ? (y ? "warn" : "bad") : (y === n ? "ok" : "muted");
+  const msg = x ? `시나리오와 다름 — ${x}건 불일치 (${y}/${n} 일치)` : y === n ? `시나리오대로 작동 중 (${y}/${n})` : `확인 중 — ${y}/${n} 일치 · ${n-y}건 정보 없음`;
+  return `<ul class="chk">${li}</ul><div class="verdict ${cls}">${msg}</div>`;
+}
+
+function sites(v){
+  return ["t3","t5","aws"].map(k => { const s = v.sites[k], r = s.repl;
+    const isAwsPilot = k === "aws" && !s.writer;
+    const dot = (ok,t) => `<span><i class="${ok ? "y" : ""}"></i>${t}</span>`;
+    const webDot = isAwsPilot ? `<span title="Pilot Light 절전 대기 (비용 $0 · 2차 DR 발동 시 24초 내 자동 기동)"><i class="y"></i>웹(절전대기)</span>` : dot(s.web,"웹");
+    const dbDot = isAwsPilot ? `<span title="AWS vm2 DB 상시 가동 · 실시간 GTID 복제 유지"><i class="y"></i>DB(상시)</span>` : dot(s.db,"DB");
+    const nodeDot = dot(s.node,"노드");
+    const rt = s.writer ? "DB 원본 (쓰기)" : r ? `복제 ← ${NM[r.src] || "-"} · ${r.io && r.sql ? "동작" : "중단"}${r.lag != null ? " · " + r.lag + "초" : ""}` : (isAwsPilot ? "실시간 GTID 복제 유지" : "복제 정보 없음");
+    const appInfo = isAwsPilot ? "App Pilot Light 절전(비용 $0)" : `앱 ${esc(s.app)}`;
+    return `<div class="sc ${s.state}"><div class="h"><b>${esc(s.name)}</b><span class="w">${esc(s.word)}</span></div>
+      <div class="dots">${webDot}${dbDot}${nodeDot}${s.score != null ? `<span>점수 <b>${s.score}</b></span>` : ""}</div>
+      <div class="r" title="${esc(rt)} · ${esc(appInfo)}">${esc(rt)} · ${esc(appInfo)}${s.down_for != null ? ` · 장애 ${s.down_for}초째` : ""}</div></div>`; }).join("");
+}
+
+function events(v){
+  if (!v.events.length) return `<div class="muted">DR 이벤트 기록이 아직 없습니다.</div>`;
+  return `<ul class="ev">${v.events.slice(0,8).map(e => `<li><span class="tm">${esc(e.t.slice(3))}</span><span class="tt" title="${esc(e.title)}">${esc(e.title)}${e.rto ? ` <b>· RTO ${e.rto}s</b>` : ""}</span><span class="lv ${esc(e.lv)}">${esc(e.lv)}</span></li>`).join("")}</ul>`;
+}
+
+function agree(v){
+  const a = v.agree, items = [["DR 컨트롤", a.orch], ["공개 입구", a.upstream], ["hsagent", a.hsagent]].filter(x => x[1]);
+  const same = items.every(x => x[1] === a.orch);
+  return items.map(x => `<span class="pill ${x[1] === a.orch ? "ok" : "bad"}">${x[0]} → ${NM[x[1]] || x[1]}</span>`).join("") +
+    `<span class="pill ${same ? "ok" : "bad"}">${same ? "판정 · 연결 일치" : "불일치 — 확인 필요"}</span>`;
+}
+
+// ---- 시연 시나리오 (duckcloud-stat 과 같은 /api/drill/* — 서버가 단계 순서 · 인증을 다시 확인한다)
+function controls(){
+  const nxt = V ? NEXT_SCN[V.phase] : 0, busy = running || (V && V.busy), ok = !!pass;
+  for (let i = 1; i <= 4; i++) {
+    const b = $("scn" + i);
+    b.classList.toggle("next", i === nxt);
+    b.classList.toggle("done", nxt > 1 && i < nxt);
+    b.disabled = !ok || busy || i !== nxt;
+  }
+  $("scnR").disabled = !ok || busy;
+  $("lkst").innerHTML = ok ? `<span class="ok">🔓 제어 가능</span> <button onclick="lock()">잠금</button>` : "🔒 제어 잠김";
+  $("lkrow").style.display = ok ? "none" : "flex";
+}
+function unlock(){ const v = $("pw").value.trim(); if (!v) return; pass = v; try { sessionStorage.setItem("duck_dr_pass", v); } catch (e) {} $("pw").value = ""; controls(); }
+function lock(){ pass = ""; try { sessionStorage.removeItem("duck_dr_pass"); } catch (e) {} controls(); }
+function log(head, text){ $("conh").textContent = head; $("conp").textContent = text; $("conp").scrollTop = 1e9; }
+async function drill(action, label){
+  if (running || !pass) return;
+  running = true; controls();
+  const t0 = performance.now(), tick = setInterval(() => $("cont").textContent = "⏱ " + ((performance.now()-t0)/1000).toFixed(1) + "s", 100);
+  log(`▶ ${label}`, "명령 전달 — DB 승격 · Argo CD · 공개 입구 전환을 진행합니다 (최대 1~3분).");
+  try {
+    const r = await fetch("/api/drill/" + action, {method:"POST", headers:{"Content-Type":"application/json","X-Dr-Auth":pass}, body:"{}"});
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 403) { lock(); log("✕ 인증 실패", "비밀번호가 맞지 않습니다 — 다시 잠금 해제하세요."); }
+    else log((d.success ? "✔ " : "✕ ") + label, String(d.output || d.message || JSON.stringify(d)).replace(/\n?NEXT_STEP=\d\s*$/m, ""));
+  } catch (e) { log("✕ " + label, "요청 실패 — " + e); }
+  clearInterval(tick); $("cont").textContent = "⏱ " + ((performance.now()-t0)/1000).toFixed(1) + "s 완료";
+  running = false; sig = ""; await refresh(); controls();
+}
+function runScn(n){ drill("scenario-" + n, ["","① t3 다운 → t5 (1차 DR)","② t5 다운 → AWS (2차 DR)","③ t3 복구 · AWS → t3 복제","④ t3 주 서버 복귀 (페일백)"][n]); }
+
+let sig = "";
+async function refresh(){
+  try {
+    const r = await fetch("/api/drboard", {cache:"no-store"}); const v = await r.json(); V = v;
+    $("at").textContent = v.at_s + " 갱신";
+    const s = JSON.stringify({...v, at:0, at_s:0});
+    if (s !== sig) { sig = s;
+      const ph = PH.find(p => p[0] === v.phase);
+      $("lamp").className = "lamp " + v.phase; $("lamp").textContent = ICON[v.phase];
+      $("ph").textContent = ph[1] + " · " + ph[2]; $("ds").textContent = DESC[v.phase];
+      $("kv").innerHTML = `운영 <b>${NM[v.act]}</b> · ${v.mode === "auto" ? "자동" : "수동"} 판정<br>마지막 전환 <b>${esc(v.since)}</b><br>다음: <b>${esc(v.next)}</b>` +
+        (v.busy ? `<br><span class="busy">⏳ 시나리오 ${v.demo_step || ""}단계 실행 중</span>` : "");
+      $("tl").innerHTML = timeline(v); $("fl").innerHTML = flowSvg(v); $("pp").innerHTML = pipe(v);
+      $("ck").innerHTML = checks(v); $("ckt").textContent = ph[1] + " 단계 기대 동작";
+      $("ss").innerHTML = sites(v); $("ev").innerHTML = events(v); $("ag").innerHTML = agree(v); $("src").textContent = v.src;
+    }
+  } catch (e) { $("at").textContent = "갱신 실패 — 다시 시도 중"; }
+  controls();
+}
+$("pw").addEventListener("keydown", e => { if (e.key === "Enter") unlock(); });
+refresh(); setInterval(() => { if (!running) refresh(); }, 4000);
+</script></body></html>

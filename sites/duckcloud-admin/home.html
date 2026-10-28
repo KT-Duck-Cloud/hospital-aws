@@ -1,0 +1,377 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>전체 현황</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>
+:root{--bg:#0b1020;--side:#0f172a;--panel:#111827;--line:#1f2937;--text:#e5e7eb;--mute:#94a3b8;--amber:#f59e0b;--cy:#67e8f9;--ok:#34d399;--bad:#fb7185}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+a{color:inherit;text-decoration:none}
+.top{height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0f172acc}
+.brand{font-weight:800;color:var(--amber);white-space:nowrap}.brand small{color:var(--mute);font-weight:400;margin-left:8px;font-size:12px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.pill{padding:3px 8px;border-radius:999px;border:1px solid #334155;font-size:11px}.pill.ro{border-color:#9f1239;color:#fecdd3;background:#4c0519}.pill.rw{border-color:#065f46;color:#a7f3d0;background:#022c22}
+.btn{padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;cursor:pointer}
+.wrap{display:flex;height:calc(100% - 52px)}
+nav.side{width:280px;min-width:280px;background:var(--side);border-right:1px solid var(--line);overflow-y:auto;padding:10px 8px 24px}
+details{margin:2px 0}summary{list-style:none;cursor:pointer;padding:7px 10px;border-radius:8px;font-weight:700;font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}summary:hover{background:#1e293b}summary .car{margin-left:auto;color:var(--mute);transition:transform .15s}details[open]>summary .car{transform:rotate(90deg)}
+.lv1{margin-left:12px;border-left:1px solid #1f2937;padding-left:6px}.lv2{margin-left:10px;border-left:1px dashed #1f2937;padding-left:6px}
+.item{display:block;padding:5px 10px;border-radius:7px;font-size:13px;color:#cbd5e1;cursor:pointer}.item:hover{background:#1e293b;color:#fff}
+.item.on{background:var(--amber);color:#111;font-weight:700}.item.top{font-weight:700;font-size:13px;color:#e2e8f0;padding:7px 10px;margin:2px 0}.item.off{color:#64748b;cursor:not-allowed;text-decoration:line-through}.item.off:hover{background:none;color:#64748b}.lv2 .item{font-size:12px;color:#a5b4c3}
+details.sub>summary{font-weight:600;font-size:13px;color:#cbd5e1}
+main.body{flex:1;min-width:0;position:relative}iframe{width:100%;height:100%;border:0;background:#020617;display:block}
+.crumb{position:absolute;top:0;right:0;z-index:2;display:flex;gap:6px;padding:6px}
+#menuBtn{display:none}
+@media (max-width:860px){nav.side{position:fixed;z-index:20;top:52px;bottom:0;left:0;transform:translateX(-100%);transition:transform .2s}nav.side.open{transform:none}#menuBtn{display:inline-block}.brand small{display:none}}
+.login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.login input{width:100%;padding:10px;margin-top:10px;border-radius:9px;border:1px solid #334155;background:#020617;color:#e5e7eb;font-size:15px}
+.login button{width:100%;margin-top:14px;padding:10px;border:0;border-radius:9px;background:var(--amber);font-weight:800;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:1.3em;margin-top:8px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+.k{font-size:11px;color:var(--mute)}.v{font-size:22px;font-weight:800;margin-top:4px}.s{font-size:11px;color:var(--mute);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute)}
+.ok{color:var(--ok)}.mute{color:var(--mute)}.cy{color:var(--cy)}.amb{color:var(--amber)}.bad{color:var(--bad)}h2{font-size:14px;margin:18px 0 8px}
+</style><script>(function(){var lg=/^\/_(login|otp)$/.test(location.pathname);if(lg){if(window.top!==window.self){window.top.location.href=location.href}return}var go=function(){try{window.top.location.href='/_login'}catch(e){location.href='/_login'}};var f=window.fetch;if(f&&!f.__duck){window.fetch=function(){return f.apply(this,arguments).then(function(r){if(r.status===401)go();return r})};window.fetch.__duck=1}})();</script></head><body><main class="ov">
+<header class="ov-hd"><h1>전체 현황</h1><span class="ov-pill" id="ovStage">확인 중…</span><span class="ov-lead" id="ovLead">화면 틀을 먼저 보이고 값은 차례로 불러옵니다</span>
+ <span class="ov-r"><span class="ov-ld" id="ovLoad"></span><a class="btn" href="/admin" target="_blank" rel="noopener">공개 상태 페이지 ↗</a></span></header>
+
+<div class="ov-grid">
+<section class="ov-card a-steps"><div class="ov-h">운영 흐름<span>1조 그룹 안 승격 → 모두 실패면 2조 클라우드 → 1조 구성원 정상화 → 그 구성원 승격</span><span class="ov-at" data-at="dr"></span></div>
+ <div class="ov-steps" id="ovSteps"><div class="sk" style="height:96px"></div><div class="sk" style="height:96px"></div><div class="sk" style="height:96px"></div><div class="sk" style="height:96px"></div></div></section>
+
+<div class="ov-col c1">
+<section class="ov-grp onp a-g1">
+ <div class="ov-gh"><i class="fa-solid fa-building"></i><b>1조 · 온프레미스 그룹</b><span class="ov-bd" id="ovG1St">확인 중</span><span class="ov-at" data-at="sites"></span></div>
+ <div class="ov-gd">구성원 t3 · t5 — 쓰기 원본인 구성원이 운영, 다른 구성원은 실시간 복제로 대기. 운영 구성원 장애 → 그룹 안에서 대기 구성원 승격</div>
+ <div class="ov-mem" id="ovG1"><div class="sk" style="height:230px"></div><div class="ov-swap"><span>⇄</span></div><div class="sk" style="height:230px"></div></div>
+</section>
+<section class="ov-card a-sync" id="ovBot"><div class="ov-h">서버 동기화 기준<span>t3 · t5 · t8 이 같아야 승격 · 복귀가 이어진다</span><span class="ov-at" data-at="sync"></span></div><div id="ovTodo"></div>
+ <div class="ov-tw"><table class="ov-sy" id="ovSync"><tr><td><div class="sk" style="height:180px"></div></td></tr></table></div></section>
+</div>
+<div class="ov-bridge a-br" id="ovBridge">
+ <div class="ov-arw fo"><span>1조 t3 · t5<br>모두 실패</span><b>→</b><small>2조 담당</small></div>
+ <div class="ov-arw fb"><b>←</b><span>1조 구성원<br>정상화</span><small>그 구성원 승격</small></div>
+</div>
+<div class="ov-col c2">
+<section class="ov-grp cld a-g2">
+ <div class="ov-gh"><i class="fa-solid fa-cloud"></i><b>2조 · 클라우드 그룹 (AWS)</b><span class="ov-bd" id="ovG2St">확인 중</span><span class="ov-at" data-at="sites"></span></div>
+ <div class="ov-gd">t8 (ap-southeast-2) — 1조가 모두 실패일 때만 담당 · 평소 앱 0개 · 읽기 전용 복제본</div>
+ <div id="ovG2"><div class="sk" style="height:150px"></div></div>
+ <div class="ov-h2">DR 판정<span id="ovCtl"></span><span class="ov-at" data-at="dr"></span></div>
+ <div id="ovDr"><div class="sk" style="height:140px"></div></div>
+</section>
+<section class="ov-card a-duty"><div class="ov-h">담당자 VM<span>DR 대상 아님</span></div><div class="ov-duty" id="ovDuty"><div class="sk" style="height:90px"></div></div></section>
+</div>
+<div class="ov-col c3">
+<section class="ov-card a-in"><div class="ov-h">입구 · 서비스 메쉬<span>Cloudflare → 게이트웨이 → 공개 입구 대상</span><span class="ov-at" data-at="dr"></span></div>
+ <div class="ov-in" id="ovIn"><div class="sk" style="height:58px;flex:1"></div></div></section>
+<section class="ov-card a-hist"><div class="ov-h">동작 기록<span>duck-hsagent · 최근 10건</span></div><ol class="ov-tl" id="ovHist"><li><div class="sk" style="height:120px"></div></li></ol></section>
+</div>
+
+
+
+</div>
+
+<div class="ov-subs">
+ <section class="ov-sub"><div class="ov-h">DR 세부 동작 및 판정<a class="ov-op" href="/admin/dr/live" target="_blank" rel="noopener">새 창 ↗</a></div><div class="sk ov-subsk"></div><iframe class="subf" data-src="/admin/dr/live" title="DR 세부"></iframe></section>
+ <section class="ov-sub"><div class="ov-h">팀 운영 현황<a class="ov-op" href="/admin/excluded/team" target="_blank" rel="noopener">새 창 ↗</a></div><div class="sk ov-subsk"></div><iframe class="subf" data-src="/admin/excluded/team" title="팀 운영 현황"></iframe></section>
+ <section class="ov-sub"><div class="ov-h">프로젝트 평가 점검<a class="ov-op" href="/admin/excluded/pj1" target="_blank" rel="noopener">새 창 ↗</a></div><div class="sk ov-subsk"></div><iframe class="subf" data-src="/admin/excluded/pj1" title="프로젝트 평가 점검"></iframe></section>
+ <section class="ov-sub"><div class="ov-h">시뮬레이션 · 점검<a class="ov-op" href="/admin/excluded/sim" target="_blank" rel="noopener">새 창 ↗</a></div><div class="sk ov-subsk"></div><iframe class="subf" data-src="/admin/excluded/sim" title="시뮬레이션"></iframe></section>
+ <section class="ov-sub"><div class="ov-h">가이드<a class="ov-op" href="/admin/excluded/guide" target="_blank" rel="noopener">새 창 ↗</a></div><div class="sk ov-subsk"></div><iframe class="subf" data-src="/admin/excluded/guide" title="가이드"></iframe></section>
+</div>
+</main>
+<style>
+.ov{padding:12px clamp(12px,1.2vw,24px) 24px;margin:0}
+/* 화면 폭을 모두 쓰는 배치 — 넓을수록 열을 늘려 스크롤을 줄인다.
+   1700px 이상: 열 4개(1조+동기화 | 전환 화살표 | 2조+DR+담당자 VM | 입구+기록)를 열마다 위로 쌓아 빈칸 없이.
+   그보다 좁으면 열 묶음(.ov-col)을 풀어(display:contents) 영역 이름으로 배치 */
+.ov-grid{display:grid;gap:12px;margin-top:12px;align-items:start;grid-template-columns:minmax(0,1fr);
+ grid-template-areas:"steps" "in" "g1" "br" "g2" "hist" "sync" "duty"}
+.ov-grid>*,.ov-col>*{min-width:0}.ov-grid .ov-card{margin-top:0}.ov-col{display:contents}
+.a-steps{grid-area:steps}.a-in{grid-area:in}.a-g1{grid-area:g1}.a-br{grid-area:br}.a-g2{grid-area:g2}.a-hist{grid-area:hist}.a-sync{grid-area:sync}.a-duty{grid-area:duty}
+@media (min-width:1300px){.ov-grid{grid-template-columns:minmax(0,1.4fr) 104px minmax(0,1fr);
+ grid-template-areas:"steps steps steps" "in in in" "g1 br g2" "sync sync g2" "hist duty duty"}}
+@media (min-width:1700px){.ov-grid{grid-template-columns:minmax(0,1.35fr) 104px minmax(0,1fr) minmax(320px,.58fr);grid-template-areas:"steps steps steps steps" "c1 br c2 c3"}
+ .ov-col{display:flex;flex-direction:column;gap:12px;min-width:0}.c1{grid-area:c1}.c2{grid-area:c2}.c3{grid-area:c3}
+ .ov-grid .a-br{align-self:start;margin-top:140px}
+ .a-in .ov-in{flex-direction:column}.a-in .ov-ar{transform:rotate(90deg);align-self:center}.a-in .ov-mesh{flex:none}.a-in .ov-nd{flex:none}}
+@media (min-width:2400px){.ov-grid{grid-template-columns:minmax(0,1.3fr) 104px minmax(0,1fr) minmax(380px,.55fr)}}
+.ov-hd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}.ov-hd h1{font-size:19px;margin:0}
+.ov-lead{color:var(--mute);font-size:13px}.ov-r{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:12px}
+.ov-ld{color:var(--mute);font-size:11.5px}.ov-ld.busy:before{content:"";display:inline-block;width:9px;height:9px;margin-right:6px;border-radius:50%;border:2px solid #475569;border-top-color:var(--amber);animation:ovsp .8s linear infinite;vertical-align:-1px}
+@keyframes ovsp{to{transform:rotate(360deg)}}
+.sk{border-radius:10px;background:linear-gradient(90deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);background-size:200% 100%;animation:ovsk 1.3s ease-in-out infinite}
+@keyframes ovsk{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.ov-at{margin-left:auto;font-size:10.5px!important;color:#64748b!important}
+.ov-pill{padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:700;border:1px solid #334155}
+.ov-pill.normal{color:var(--ok);border-color:#059669;background:#06261c}.ov-pill.first{color:#fde68a;border-color:#b45309;background:#1c1405}
+.ov-pill.dr{color:var(--amber);border-color:#b45309;background:#2a1a05}.ov-pill.back{color:#7dd3fc;border-color:#0369a1;background:#06192a}
+.ov-pill.down{color:var(--bad);border-color:#9f1239;background:#2d0a14}
+.ov-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:12px;min-width:0}
+.ov-h{font-size:13px;font-weight:700;color:#cbd5e1;margin-bottom:10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ov-h span{font-weight:400;font-size:11.5px;color:var(--mute)}.ov-h2{font-size:12px;font-weight:700;color:#cbd5e1;margin:12px 0 6px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ov-h2 span{font-weight:400;font-size:11px;color:var(--mute)}
+.ov-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ov-st{position:relative;padding:10px 14px 10px 40px;border:1px solid var(--line);background:#0b1222;border-radius:12px}
+.ov-st .n{position:absolute;left:12px;top:10px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:#1e293b;color:var(--mute)}
+.ov-st b{display:block;font-size:13px;color:#e2e8f0;padding-right:44px}.ov-st .g{font-size:10.5px;color:var(--mute);margin-top:1px}.ov-st .d{font-size:11.5px;color:var(--mute);margin-top:4px}
+.ov-st .w{font-size:11px;margin-top:6px;color:#cbd5e1}.ov-st .w i{font-style:normal;color:var(--mute)}
+.ov-st.cur{border-color:#059669;background:#06261c}.ov-st.cur .n{background:var(--ok);color:#022c22}
+.ov-st.cur.dr{border-color:#b45309;background:#2a1a05}.ov-st.cur.dr .n{background:var(--amber)}.ov-st.cur.back{border-color:#0369a1;background:#06192a}.ov-st.cur.back .n{background:#38bdf8}
+.ov-st .tag{position:absolute;right:10px;top:9px;font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid #334155;color:var(--mute)}
+.ov-st.cur .tag{color:var(--ok);border-color:#059669}.ov-st.nx .tag{color:var(--amber);border-color:#b45309}
+.ov-bar{height:6px;border-radius:4px;background:#1e293b;overflow:hidden;margin-top:5px}.ov-bar i{display:block;height:100%;background:var(--ok)}
+.ov-bar.hot i{background:var(--bad)}.ov-bar.mid i{background:var(--amber)}
+.ov-in{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
+.ov-nd{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#0b1222;font-size:12px;flex:1 1 180px;min-width:0}.ov-nd b{font-size:12.5px;color:#e2e8f0}
+.ov-nd .s{color:var(--mute);font-size:11px}.ov-nd.ok{border-color:#059669}.ov-nd.bad{border-color:#9f1239}.ov-nd.sb{border-color:#0369a1;border-style:dashed}
+.ov-ar{align-self:center;color:#475569;font-size:16px}
+.ov-mesh{border:1.5px dashed #3b5bdb;border-radius:12px;padding:6px;display:flex;flex-wrap:wrap;gap:6px;background:#0e1630;flex:2 1 360px}
+.ov-mesh>.cap{width:100%;font-size:11px;color:#91a7ff;font-weight:600}
+.ov-ch{display:flex;flex-wrap:wrap;gap:3px 9px;margin-top:4px;font-size:11px;color:#cbd5e1}.ov-ch span{display:inline-flex;align-items:center;gap:4px}
+.ov-ch i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f43f5e}.ov-ch i.ok{background:#10b981}.ov-ch i.sb{background:#38bdf8}.ov-ch i.w{background:#f59e0b}.ov-ch i.na{background:#475569}
+.ov-grp{border-radius:16px;padding:12px 14px;min-width:0}
+.ov-grp.onp{background:#0d1a14;border:1.5px solid #14532d}.ov-grp.cld{background:#0c1424;border:1.5px solid #1e3a8a}
+.ov-gh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ov-gh b{font-size:15px;color:#e2e8f0}.ov-gh>i{color:var(--amber)}
+.ov-grp.onp .ov-gh>i{color:#4ade80}.ov-grp.cld .ov-gh>i{color:#60a5fa}
+.ov-gd{font-size:11.5px;color:var(--mute);margin:4px 0 10px}
+.ov-mem{display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);gap:0;align-items:stretch}
+.ov-swap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:0 4px}
+.ov-swap>span{font-size:22px;color:#4ade80;line-height:1}.ov-swap small{font-size:10.5px;color:var(--mute);line-height:1.35}
+.ov-swap .rp{font-size:10.5px;color:#c4b5fd;padding:4px 6px;border:1px dashed #4c1d95;border-radius:8px;width:100%;box-sizing:border-box}.ov-swap .rp.bad{color:#fda4af}
+.ov-bridge{display:flex;flex-direction:column;justify-content:center;gap:18px;align-self:center}
+.ov-arw{text-align:center;border:1px dashed #334155;border-radius:10px;padding:7px 4px;font-size:10.5px;color:var(--mute);line-height:1.35;opacity:.55}
+.ov-arw b{display:block;font-size:20px;line-height:1.1}.ov-arw small{display:block;color:#cbd5e1}.ov-arw.fo b{color:#fb923c}.ov-arw.fb b{color:#38bdf8}
+.ov-arw.on{opacity:1;border-style:solid}.ov-arw.fo.on{border-color:#c2410c;background:#1f1106}.ov-arw.fb.on{border-color:#0369a1;background:#06192a}
+.ov-site{border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:#0b1222;min-width:0}.ov-site.ok{border-color:#059669}
+.ov-site.off{border-color:#9f1239}.ov-site.sb{border-color:#0369a1;border-style:dashed}.ov-site.warn{border-color:#b45309}
+.ov-site .t{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.ov-site .t b{font-size:13.5px;color:#e2e8f0;margin-right:2px}
+.ov-site .t .o{margin-left:auto;font-size:11px;color:var(--cy)}.ov-site .ds{font-size:11px;color:var(--mute);margin:3px 0 4px}
+.ov-bd{font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid #334155;color:#cbd5e1}
+.ov-bd.ok{color:var(--ok);border-color:#059669}.ov-bd.bad{color:var(--bad);border-color:#9f1239}.ov-bd.sb{color:#7dd3fc;border-color:#0369a1}.ov-bd.amb{color:var(--amber);border-color:#b45309}
+.ov-vm{border-top:1px dashed #1e293b;padding:5px 0 3px}.ov-vm .nm{font-size:12px;font-weight:700;color:#e2e8f0}.ov-vm .nm span{font-weight:400;color:var(--mute);margin-left:6px}
+.ov-db{margin-top:5px;padding:5px 8px;border-radius:8px;background:#0f172a;font-size:11.5px;color:#cbd5e1;display:flex;flex-wrap:wrap;gap:2px 12px}
+.ov-db em{font-style:normal;color:var(--mute)}
+.ov-ln{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:12px;margin-top:8px}
+.ov-ln .e{position:relative;height:22px;display:flex;align-items:center;justify-content:center}
+.ov-ln .e:before{content:"";position:absolute;left:0;right:8px;top:50%;border-top:2px dashed #8b5cf6}.ov-ln .e:after{content:"▶";position:absolute;right:0;top:2px;color:#8b5cf6;font-size:11px}
+.ov-ln.bad .e:before{border-top-color:#f43f5e}.ov-ln.bad .e:after{color:#f43f5e}
+.ov-ln .e span{position:relative;background:#0c1424;padding:0 8px;font-size:11px;color:#c4b5fd}.ov-ln.bad .e span{color:#fda4af}
+.ov-tk{padding:3px 9px;border-radius:8px;border:1px solid var(--line);background:#0b1222;font-weight:700;color:#e2e8f0;white-space:nowrap}
+.ov-tk small{font-weight:400;color:var(--mute);margin-left:5px}
+.ov-vd{border-radius:12px;padding:10px 12px;border:1px solid #334155;background:#0b1222}.ov-vd b{font-size:14px}.ov-vd .s{font-size:11.5px;color:var(--mute);margin-top:3px}
+.ov-vd.ok{border-color:#059669}.ov-vd.bad{border-color:#9f1239}.ov-vd.warn{border-color:#b45309}
+.ov-gg{margin-top:9px}.ov-gg .r{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#cbd5e1}.ov-gg .r span{color:var(--mute);font-size:11px}
+.ov-ck{list-style:none;margin:10px 0 0;padding:0;font-size:12px}.ov-ck li{display:grid;grid-template-columns:16px 1fr;gap:6px;padding:4px 0;border-top:1px dashed #1e293b}
+.ov-ck li .k{color:#e2e8f0}.ov-ck li .v{color:var(--mute);font-size:11px}.ov-ck .y{color:var(--ok)}.ov-ck .x{color:var(--bad)}.ov-ck .u{color:var(--mute)}
+.ov-note{margin-top:10px;font-size:11.5px;color:#cbd5e1;padding:7px 10px;border-radius:8px;background:#0f172a}
+.ov-tw{overflow-x:auto}.ov-sy{width:100%;border-collapse:collapse;font-size:12px}.ov-sy th,.ov-sy td{padding:6px 8px;border-bottom:1px solid #1e293b;text-align:left;vertical-align:top}
+.ov-sy th{color:var(--mute);font-weight:500}.ov-sy td{min-width:110px}.ov-sy td.k{min-width:160px}.ov-sy td.k b{color:#e2e8f0;white-space:nowrap}.ov-sy td.k span{display:block;font-size:10.5px;color:var(--mute);max-width:260px}
+.ov-sy .c{display:flex;gap:6px}.ov-sy .c i{flex:none;width:8px;height:8px;border-radius:50%;margin-top:4px;background:#64748b}
+.ov-sy .c i.ok{background:#10b981}.ov-sy .c i.w{background:#f59e0b}.ov-sy .c i.bad{background:#f43f5e}.ov-sy .n{display:block;font-size:10.5px;color:var(--mute)}
+.ov-todo{margin:0 0 8px;padding:7px 11px;border:1px solid #7c2d12;background:#1c1009;border-radius:10px;font-size:12px;color:#fed7aa}.ov-todo li{margin:2px 0 2px 16px}
+.ov-tl{list-style:none;margin:0;padding:0;font-size:12px}
+.ov-tl li{display:grid;grid-template-columns:78px 1fr;gap:8px;padding:5px 0;border-top:1px dashed #1e293b}.ov-tl li:first-child{border-top:0}
+.ov-tl li:only-child{display:block}.ov-tl time{color:var(--mute);font-size:11px}.ov-tl li.bad span{color:#fda4af}.ov-tl li.ok span{color:#a7f3d0}
+.ov-duty{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px}
+.ov-err{font-size:12px;color:#fda4af;padding:8px 10px;border:1px dashed #9f1239;border-radius:10px}.ov-err button{margin-left:8px}
+/* 하위 화면 — 클릭 없이 스크롤해 가까워지면 불러온다. 넓으면 2열 */
+.ov-subs{display:grid;gap:12px;margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,760px),1fr));align-items:start}
+.ov-sub{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}.ov-sub>.ov-h{padding:9px 14px 0;margin-bottom:8px}
+.ov-op{margin-left:auto;font-weight:400;font-size:11.5px;color:var(--cy);text-decoration:none}
+.ov-sub .subf{display:none;width:100%;height:640px;border:0;border-top:1px solid var(--line)}.ov-sub.on .subf{display:block}.ov-sub.on .ov-subsk{display:none}
+.ov-subsk{height:300px;margin:0 14px 14px}
+@media (max-width:1299px){.ov-bridge{flex-direction:row;justify-content:center}.ov-arw{flex:0 1 240px}
+ .ov-arw.fo b{transform:rotate(90deg)}.ov-arw.fb b{transform:rotate(90deg)}}
+@media (max-width:1100px){.ov-steps{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){.ov-mem{grid-template-columns:1fr}.ov-swap{flex-direction:row;padding:6px 0}.ov-steps{grid-template-columns:1fr}}
+</style><script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+async function j(u){ const r = await fetch(u, {cache: 'no-store'}); if (r.status === 401) { top.location.href = '/_login'; throw 0; } if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
+const dot = (st, sb) => st === 200 ? 'ok' : sb ? 'sb' : st ? 'w' : '';
+const pct = (v, m) => Math.max(0, Math.min(100, m ? v / m * 100 : 0));
+const tm = t => { const d = new Date(t * 1000), n = new Date(); return (d.toDateString() === n.toDateString() ? '' : (d.getMonth() + 1) + '/' + d.getDate() + ' ') + d.toTimeString().slice(0, 8); };
+
+// ── 조각별 백그라운드 로딩 — 틀은 이미 그려져 있고, 값이 온 조각부터 채운다
+//   dr 15초 · sites 30초 · sync 60초(화면에 보일 때만). 이 화면이 셸에서 가려져 있거나 탭이 숨으면 쉰다.
+const P = {dr: {ttl: 15000}, sites: {ttl: 30000}, sync: {ttl: 60000, lazy: true}};
+const D = {};
+function hidden(){ try { return document.hidden || (window.frameElement && window.frameElement.offsetParent === null); } catch (e) { return document.hidden; } }
+function busy(){ const b = Object.keys(P).filter(k => P[k].busy), n = Object.keys(P).filter(k => D[k]).length;
+  $('ovLoad').className = 'ov-ld' + (b.length ? ' busy' : ''); $('ovLoad').textContent = b.length ? '불러오는 중 ' + n + ' / 3' : (D.dr ? '확인 ' + tm(D.dr.at) : ''); }
+async function get(k){
+  if (P[k].busy) return; P[k].busy = true; busy();
+  try { const v = await j('/home/part/' + k); if (v.error && !v.at) throw new Error(v.error); D[k] = v; P[k].at = Date.now(); P[k].err = null; draw(k); }
+  catch (e) { if (e === 0) return; P[k].err = String(e.message || e); P[k].at = Date.now(); if (!D[k]) fail(k); }
+  finally { P[k].busy = false; busy(); }
+}
+function fail(k){
+  const m = '<div class="ov-err">불러오지 못함 — ' + esc(P[k].err) + '<button class="btn" onclick="get(\'' + k + '\')">다시</button></div>';
+  ({dr: ['ovSteps', 'ovIn', 'ovDr', 'ovHist'], sites: ['ovG1', 'ovG2', 'ovDuty'], sync: ['ovTodo']}[k] || []).forEach(id => $(id).innerHTML = m);
+  if (k === 'sync') $('ovSync').innerHTML = '';
+}
+function draw(k){
+  const run = f => { try { f(); } catch (e) { console.error(k, f.name, e); } };
+  if (k === 'dr') { run(entry); run(hist); }
+  if (k === 'sites') { run(group1); run(group2); run(duty); }
+  if (k === 'sync') run(syncTable);
+  if (k !== 'sync') { run(stageAndSteps); run(drc); }
+  document.querySelectorAll('.ov-at[data-at="' + k + '"]').forEach(e => e.textContent = D[k] ? tm(D[k].at) + (D[k].took != null ? ' · ' + D[k].took + '초' : '') : '');
+}
+function tick(force){
+  if (hidden() && !force) return;
+  for (const k in P) {
+    const p = P[k];
+    if (p.lazy && !p.seen) continue;
+    if (!p.at || Date.now() - p.at > p.ttl) get(k);
+  }
+}
+
+// ── 단계: 1조 그룹 운영 → 그룹 안 승격 → 2조 클라우드 담당 → 1조 구성원 정상화 · 승격
+const by = () => { const o = {}; ((D.sites || {}).sites || []).forEach(s => o[s.slot] = s); return o; };
+const dbUp = s => !!(s && s.db && s.db.up);
+function stage(){
+  const dr = D.dr || {}, si = D.sites, b = by(), act = (dr.dr || {}).active, prim = dr.prim || [];
+  if (act === '8' || prim.includes('8')) {
+    const back = ['3', '5'].filter(n => dbUp(b[n]));
+    return back.length ? ['back', 3, '2조 클라우드 운영 — 1조 복구 중', back.map(n => 't' + n).join(' · ') + ' DB 응답 — 안정되면 그 구성원이 승격해 1조로 복귀']
+                       : ['dr', 2, '2조 클라우드(AWS) 운영', '1조 t3 · t5 가 모두 실패 — 2조 AWS 가 병원 서비스를 담당'];
+  }
+  const w = (si && si.writer && si.writer[0]) || prim.find(s => s === '3' || s === '5');
+  if (!w) return ['down', 1, '서비스 이상', '1조 운영 구성원을 찾지 못함 — 1조 담당 확인'];
+  const o = w === '3' ? '5' : '3';
+  if (!si) return ['normal', 0, '1조 운영 — t' + w, '구성원 상태 확인 중…'];
+  return dbUp(b[o]) ? ['normal', 0, '1조 운영 — t' + w + ' (t' + o + ' 대기)', '그룹 안 승격 가능 · 2조 AWS 는 실시간 복제로 대기']
+                    : ['first', 1, '1조 운영 — t' + w + ' 단독', 't' + o + ' 대기 없음 — 다음 장애는 2조 클라우드가 담당'];
+}
+function stageAndSteps(){
+  if (!D.dr) return;
+  const s = stage(), r = (D.dr.dr || {}).rules || {}, fo = r.failover_min || 5, fb = r.failback_min || 3, dm = (D.dr.dr || {}).down_min || 0;
+  $('ovStage').textContent = s[2]; $('ovStage').className = 'ov-pill ' + s[0]; $('ovLead').textContent = s[3];
+  const auto = D.dr.dr.freeze ? '동결 — 자동 승격 멈춤' : (D.dr.dr.mode || 'auto') === 'auto' ? '자동' : '수동';
+  const S = [
+    ['1조 그룹 운영', '1조 온프레미스', 't3 · t5 중 쓰기 원본 구성원이 운영 · 다른 구성원은 복제로 대기 · 2조 AWS 도 복제로 대기', '평소', '운영 구성원 DB · 앱 이상'],
+    ['1조 그룹 안 승격', '1조 온프레미스', '운영 구성원 장애 → 대기 구성원 승격 (t3 ⇄ t5) · 공개 입구가 그 구성원으로', 'dr-control · 입구 hsagent', '1조 t3 · t5 모두 ' + fo + '분 무응답 → 2조'],
+    ['2조 클라우드 담당', '2조 AWS', 'AWS DB 쓰기 · 앱 기동 · 공개 입구 AWS · 1조 앱 계정 잠금(펜싱)', 'duck-hsagent — ' + auto, '1조 구성원 하나라도 DB 회복'],
+    ['1조 구성원 정상화 → 승격', '2조 → 1조', '먼저 정상화된 t3 또는 t5 가 AWS 변경분을 받아 ' + fb + '분 안정 → 그 구성원이 다시 운영', 'duck-hsagent · 1조 담당', '1조 그룹 운영']];
+  const cur = s[1];
+  $('ovSteps').innerHTML = S.map((x, i) => {
+    const c = i === cur ? 'cur' + (i === 2 ? ' dr' : i === 3 ? ' back' : '') : i === (cur + 1) % 4 ? 'nx' : '';
+    let extra = '';
+    if (i === 2 && cur < 2) extra = '<div class="w">1조 DB 무응답 ' + dm + ' / ' + fo + '분 · 승격 준비 ' + (D.dr.dr.ready_n || 0) + ' / 5' +
+      '<div class="ov-bar ' + (dm ? 'hot' : '') + '"><i style="width:' + pct(dm, fo) + '%"></i></div></div>';
+    return '<div class="ov-st ' + c + '"><span class="n">' + (i + 1) + '</span>' + (c ? '<span class="tag">' + (i === cur ? '지금' : '다음') + '</span>' : '') +
+      '<b>' + esc(x[0]) + '</b><div class="g">' + esc(x[1]) + '</div><div class="d">' + esc(x[2]) + '</div><div class="w"><i>실행</i> ' + esc(x[3]) + '</div>' +
+      '<div class="w"><i>다음으로</i> ' + esc(x[4]) + '</div>' + extra + '</div>';
+  }).join('');
+  $('ovBridge').querySelector('.fo').classList.toggle('on', cur === 2 || cur === 1);
+  $('ovBridge').querySelector('.fb').classList.toggle('on', cur === 3);
+}
+
+function entry(){
+  const v = D.dr, gw = (v.gw || []).map(g => '<div class="ov-nd ' + (g.on ? 'ok' : 'bad') + '"><b>Gateway ' + esc(g.id) + '</b> <span class="s">' + esc(g.name) + '</span>' +
+    '<div class="ov-ch"><span><i class="' + (g.conn ? 'ok' : '') + '"></i>터널</span><span><i class="' + (g.mesh ? 'ok' : '') + '"></i>메쉬 :8087</span>' +
+    '<span><i class="' + (g.hs ? 'ok' : 'na') + '"></i>VPN 제어 ' + (g.hs ? '주' : '대기') + '</span></div></div>').join('');
+  const on = (v.gw || []).filter(g => g.on).length;
+  const grp = s => s === '8' ? '2조 AWS t8' : '1조 t' + s;
+  const up = (v.prim || []).map(grp).join(' · ') || '-', bk = (v.back || []).map(grp).join(' · ') || '-';
+  $('ovIn').innerHTML = '<div class="ov-nd ok"><b>Cloudflare</b><div class="s">hospital.example.org · TLS · 터널</div></div><span class="ov-ar">→</span>' +
+    '<div class="ov-mesh"><div class="cap">서비스 메쉬 — 게이트 :8088 → frontdoor :8087 · ' + on + '대</div>' + gw + '</div><span class="ov-ar">→</span>' +
+    '<div class="ov-nd"><b>공개 입구 대상</b><div class="ov-ch"><span><i class="ok"></i>주 ' + esc(up) + '</span><span><i class="sb"></i>예비 ' + esc(bk) + '</span></div></div>';
+}
+
+function role(s, writer){
+  if (!s.db) return s.vpn ? ['DB 지표 없음', 'amb', 'warn'] : ['중단', 'bad', 'off'];
+  if (!s.db.up) return ['DB 중단', 'bad', 'off'];
+  if (s.team === '2조') return D.dr && (D.dr.dr || {}).active === '8' ? ['담당 중 · 쓰기', 'amb', 'warn'] : ['대기 · 읽기 전용', 'sb', 'sb'];
+  if (s.db.writer) return [writer.length > 1 ? '쓰기 원본 둘 — 위험' : '운영 · 쓰기 원본', writer.length > 1 ? 'bad' : 'ok', writer.length > 1 ? 'off' : 'ok'];
+  return s.db.io === 1 && s.db.sql === 1 ? ['대기 · 승격 후보', 'sb', 'sb'] : ['대기 · 복제 멈춤', 'amb', 'warn'];
+}
+function card(s){
+  const w = (D.sites || {}).writer || [], r = role(s, w), d = s.db;
+  const vms = s.vms.map(m => '<div class="ov-vm"><div class="nm">' + esc(m.name) + '<span>' + esc(m.ip) + ' · ' + esc(m.job) + '</span></div><div class="ov-ch">' +
+    '<span><i class="' + (m.vpn ? 'ok' : '') + '"></i>VPN</span>' +
+    m.svc.map(x => '<span title="' + (x[3] && x[2] !== 200 ? '대기 — 승격 때 응답' : 'HTTP ' + x[2]) + '"><i class="' + dot(x[2], x[3]) + '"></i>' + esc(x[1]) + '</span>').join('') + '</div></div>').join('');
+  const db = d ? '<div class="ov-db">' + (d.up ? '<span><b>' + (d.writer ? '쓰기 원본' : '읽기 전용') + '</b></span><span><em>MySQL</em> ' + esc(d.ver) + '</span><span><em>server_id</em> ' + d.sid + '</span>' +
+    '<span><em>binlog</em> ' + d.keep + '일</span>' + (d.src ? (d.writer && !(d.io === 1 && d.sql === 1) ? '<span><em>이전 원본</em> t' + esc(d.src) + ' 정지 (승격 뒤 정상)</span>' : '<span><em>원본</em> t' + esc(d.src) + ' ' + (d.io === 1 && d.sql === 1 ? '✓' : '✕') + '</span>') : '') : '<span class="bad">MySQL 응답 없음</span>') + '</div>'
+    : '<div class="ov-db"><span class="mute">DB 지표(9104) 응답 없음</span></div>';
+  return '<div class="ov-site ' + r[2] + '"><div class="t"><b>t' + esc(s.slot) + '</b><span class="ov-bd ' + r[1] + '">' + r[0] + '</span>' +
+    '<span class="o">' + esc(s.owner ? '담당 ' + s.owner : '') + '</span></div>' + vms + db + '</div>';
+}
+const lnk = (a, b) => ((D.sites || {}).links || []).find(l => l.src === a && l.dst === b);
+const lab = l => !l ? '' : l.io && l.sql ? 'IO ✓ · SQL ✓ · 지연 ' + (l.lag == null ? '-' : Math.round(l.lag) + '초') : '복제 멈춤' + (l.err ? ' (' + l.err + ')' : '');
+function group1(){
+  const b = by(), t3 = b['3'], t5 = b['5'], w = D.sites.writer || [];
+  const rp = [lnk('3', '5'), lnk('5', '3')].filter(Boolean).filter(l => l.io && l.sql || !w.includes(l.dst)).map(l => '<div class="rp ' + (l.io && l.sql ? '' : 'bad') + '"><b>t' + l.src + ' → t' + l.dst + '</b><br>' + (l.io && l.sql ? '복제 중 · 지연 ' + (l.lag == null ? '-' : Math.round(l.lag) + '초') : '멈춤' + (l.err ? ' (' + l.err + ')' : '')) + '</div>').join('');
+  $('ovG1').innerHTML = (t3 ? card(t3) : '<div class="ov-err">t3 정보 없음</div>') +
+    '<div class="ov-swap"><span>⇄</span><small>운영 장애 시<br>대기 구성원 승격</small>' + (rp || '<small class="mute">구성원 간 복제 없음</small>') + '</div>' +
+    (t5 ? card(t5) : '<div class="ov-err">t5 정보 없음</div>');
+  const n = ['3', '5'].filter(x => dbUp(b[x])).length;
+  const st = $('ovG1St');
+  st.textContent = w.length === 1 ? 't' + w[0] + ' 운영 · ' + (n === 2 ? '대기 1' : '대기 없음') : w.length > 1 ? '쓰기 원본 둘' : n ? '운영 구성원 없음' : '모두 실패';
+  st.className = 'ov-bd ' + (w.length === 1 && n === 2 ? 'ok' : w.length === 1 ? 'amb' : 'bad');
+}
+function group2(){
+  const b = by(), t8 = b['8'], w = (D.sites.writer || [])[0];
+  const l = ['3', '5'].map(x => lnk(x, '8')).find(Boolean);
+  const chain = l ? '<div class="ov-ln ' + (l.io && l.sql ? '' : 'bad') + '"><span class="ov-tk">1조 t' + esc(l.src) + '<small>' + (l.src === w ? '운영' : '대기') + '</small></span><div class="e"><span>' + esc(lab(l)) +
+    '</span></div><span class="ov-tk">2조 t8<small>복제본</small></span></div>' : '<div class="ov-err" style="margin-top:8px">1조 → AWS 복제 연결 없음</div>';
+  $('ovG2').innerHTML = (t8 ? card(t8) : '<div class="ov-err">t8 정보 없음 — AWS 가 꺼져 있을 수 있음 (infra/aws/up.sh)</div>') + chain;
+  const act = D.dr && (D.dr.dr || {}).active === '8', st = $('ovG2St');
+  st.textContent = act ? '담당 중' : t8 && t8.vpn ? '대기' : '꺼짐'; st.className = 'ov-bd ' + (act ? 'amb' : t8 && t8.vpn ? 'sb' : 'bad');
+}
+
+function drc(){
+  if (!D.dr) return;
+  const d = D.dr.dr || {}, r = d.rules || {}, cr = d.crit || [], pf = D.dr.preflight;
+  if (d.error) { $('ovDr').innerHTML = '<div class="ov-err">DR 판정 조회 실패 — ' + esc(d.error) + '</div>'; return; }
+  const stb = parseInt((String((cr.find(c => /편성/.test(c.k)) || {}).v || '').match(/\d+/) || ['0'])[0], 10);
+  const lk = ((D.sites || {}).links || []).find(l => l.dst === '8'), lag = lk ? lk.lag : null;
+  const dm = d.down_min || 0, fo = r.failover_min || 5, lm = r.lag_max || 60, sm = r.stable_min || 10;
+  const vd = d.active ? ['warn', '2조 클라우드 담당 중', '1조 구성원이 회복해 ' + (r.failback_min || 3) + '분 안정이면 그 구성원이 승격']
+    : d.ready ? ['ok', '승격 준비 ' + d.ready_n + ' / 5 — 담당 가능', '1조 t3 · t5 DB 가 모두 ' + fo + '분 무응답이면 자동 담당']
+    : ['bad', '승격 보류 ' + (d.ready_n || 0) + ' / 5', '아래 ✕ 항목을 채워야 2조가 이어받을 수 있음'];
+  const g = (k, val, max, unit, hot, need) => '<div class="ov-gg"><div class="r">' + esc(k) + '<span>' + esc(val + ' / ' + max + unit) + ' · ' + esc(need) + '</span></div>' +
+    '<div class="ov-bar ' + hot + '"><i style="width:' + pct(val, max) + '%"></i></div></div>';
+  const rest = cr.filter(c => !/DB 응답|편성|지연/.test(c.k));
+  $('ovCtl').textContent = (d.controller || '') + (d.job && d.job.running ? ' · 작업 중: ' + (d.job.kind || '') + ' ' + (d.job.step || '') : '');
+  $('ovDr').innerHTML = '<div class="ov-vd ' + vd[0] + '"><b class="' + (vd[0] === 'ok' ? 'ok' : vd[0] === 'bad' ? 'bad' : 'amb') + '">' + esc(vd[1]) + '</b><div class="s">' + esc(vd[2]) + ' · ' + esc(d.phase || '') + '</div></div>' +
+    g('1조 DB 무응답 (담당 시작)', dm, fo, '분', dm ? 'hot' : '', '차면 2조 담당') +
+    g('2조 편성 안정', Math.min(stb, sm), sm, '분', stb >= sm ? '' : 'mid', '정상 ' + stb + '분') +
+    g('복제 지연', lag == null ? 0 : Math.round(lag), lm, '초', lag != null && lag > lm / 2 ? 'mid' : '', D.sites ? '장애 직전 기준' : '구성원 확인 중') +
+    (pf ? '<div class="ov-note"><b class="' + (pf.go ? 'ok' : 'bad') + '">2차 시험 사전 점검</b> ' + esc(pf.summary || '') + (pf.at ? ' <span class="mute">(' + tm(pf.at) + ')</span>' : '') + '</div>' : '') +
+    '<ul class="ov-ck">' + rest.map(c => '<li><span class="' + (c.ok === true ? 'y' : c.ok === false ? 'x' : 'u') + '">' + (c.ok === true ? '✓' : c.ok === false ? '✕' : '·') + '</span>' +
+      '<div><span class="k">' + esc(c.k) + '</span> — ' + esc(c.v) + '<div class="v">' + esc(c.need) + '</div></div></li>').join('') + '</ul>' +
+    (d.note ? '<div class="ov-note"><b>판정</b> ' + esc(d.note) + '</div>' : '');
+}
+
+function hist(){
+  $('ovHist').innerHTML = (D.dr.history || []).map(h => '<li class="' + (/실패|해제|중단/.test(h.text) ? 'bad' : /완료|정상|확인/.test(h.text) ? 'ok' : '') + '"><time>' + tm(h.at) + '</time><span>' + esc(h.text) + '</span></li>').join('') || '<li class="mute">기록 없음</li>';
+}
+function duty(){
+  $('ovDuty').innerHTML = (D.sites.duty || []).map(g => '<div class="ov-site"><div class="t"><b>' + esc(g.name) + '</b><span class="o">' + esc(g.owner) + '</span></div><div class="ds">' + esc(g.desc) + '</div>' +
+    g.vms.map(m => '<div class="ov-vm"><div class="nm">' + esc(m.name) + '<span>' + esc(m.ip) + ' · ' + esc(m.job) + '</span></div><div class="ov-ch"><span><i class="' + (m.vpn ? 'ok' : '') + '"></i>VPN</span>' +
+      m.svc.map(x => '<span><i class="' + dot(x[2], x[3]) + '"></i>' + esc(x[1]) + '</span>').join('') + '</div></div>').join('') + '</div>').join('');
+}
+function syncTable(){
+  const sy = D.sync || {};
+  $('ovTodo').innerHTML = (sy.todo || []).length ? '<div class="ov-todo"><b>맞춰야 할 것 ' + sy.todo.length + '</b><ul>' + sy.todo.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>' : '';
+  $('ovSync').innerHTML = sy.rows ? '<tr><th>항목 · 기준</th>' + (sy.cols || []).map(c => '<th>' + esc(c === 't8' ? '2조 AWS t8' : '1조 ' + c) + '</th>').join('') + '</tr>' +
+    sy.rows.map(x => '<tr><td class="k"><b>' + esc(x.k) + '</b><span>' + esc(x.base) + '</span></td>' + x.cells.map(c => '<td><div class="c"><i class="' + esc(c.st) + '"></i><div>' + esc(c.v) +
+      (c.n ? '<span class="n">' + esc(c.n) + '</span>' : '') + '</div></div></td>').join('') + '</tr>').join('') : '<tr><td class="bad">조회 실패 ' + esc(sy.error || '') + '</td></tr>';
+}
+
+// 시작 — 빠른 조각(dr)과 VPN 점검(sites)을 동시에, 동기화 표는 화면에 보일 때
+get('dr'); get('sites');
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { P.sync.seen = true; io.disconnect(); tick(true); } }), {rootMargin: '300px'}) : null;
+if (io) io.observe($('ovBot')); else P.sync.seen = true;
+setInterval(() => tick(false), 5000);
+document.addEventListener('visibilitychange', () => tick(false));
+window.addEventListener('message', e => { if (e.origin === location.origin && e.data === 'duck:shown') tick(false); });   // 셸이 이 화면을 다시 보일 때
+// 하위 화면 — 클릭 없이, 스크롤해 화면 600px 앞까지 오면 하나씩 불러오고 내용 높이에 맞춘다
+function subLoad(sec){ const f = sec.querySelector('iframe'); if (f.src) return; f.addEventListener('load', () => sec.classList.add('on'), {once: true}); f.src = f.dataset.src; }
+const subs = document.querySelectorAll('.ov-sub');
+if ('IntersectionObserver' in window) {
+  const so = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { so.unobserve(e.target); subLoad(e.target); } }), {rootMargin: '600px 0px'});
+  subs.forEach(x => so.observe(x));
+} else subs.forEach(subLoad);
+setInterval(() => document.querySelectorAll('.ov-sub.on iframe').forEach(f => { try { const h = f.contentDocument.documentElement.scrollHeight;
+  if (h > 80 && Math.abs(h - (f._h || 0)) > 8) { f._h = h; f.style.height = Math.min(h, 6000) + 'px'; } } catch (e) {} }), 1500);
+</script></body></html>

@@ -1,0 +1,12 @@
+{
+  "listen": "100.64.0.1:8190",
+  "allowed_cidrs": ["100.64.0.0/10", "10.10.10.0/24"],
+  "origin": "https://console.example.org",
+  "session_minutes": 60,
+  "accounts_db": "/var/lib/hospital-common/accounts.db",
+  "audit_log": "/var/log/hospital-common/console-audit.jsonl",
+  "agent_sock": "/run/hostagent/agent.sock",
+  "entry_sock": "/run/entry/agent.sock",
+  "health": { "t3-vm2": "http://100.64.0.32:9100/metrics" },
+  "public_url": "https://www.example.org/api/site"
+}

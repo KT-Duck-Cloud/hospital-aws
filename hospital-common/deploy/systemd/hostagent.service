@@ -1,0 +1,15 @@
+[Unit]
+Description=hospital-common hostagent (root, unix socket only)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/hospital-common
+Environment=HOSTAGENT_CONF=/etc/hospital-common/hostagent.json
+ExecStart=/usr/bin/python3 -m services.hostagent
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

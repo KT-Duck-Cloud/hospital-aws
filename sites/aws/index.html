@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuckCloud · AWS 관리 대시보드 (5051)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // ==========================================
+    // Pilot Light 실시간 상태 로드 및 제어
+    // ==========================================
+    async function loadPilotLightStatus(showSpin = false) {
+      const icon = document.getElementById("plRefreshIcon");
+      if (showSpin && icon) icon.classList.add("fa-spin");
+      try {
+        const res = await fetch("/api/pilot-light/status");
+        if (!res.ok) return;
+        const d = await res.json();
+
+        // 1. 모드 배지 & 설명
+        const badge = document.getElementById("plModeBadge");
+        const desc = document.getElementById("plModeDesc");
+        if (badge) {
+          if (d.mode === "PILOT_LIGHT_STANDBY") {
+            badge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+            badge.textContent = "Pilot Light 모드 (비용 $0 대기 중)";
+          } else if (d.mode === "AWS_ACTIVE") {
+            badge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse";
+            badge.textContent = "2차 DR 발동 중 (AWS Active)";
+          } else if (d.mode === "WARM_STANDBY") {
+            badge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30";
+            badge.textContent = "Warm Standby (인스턴스 2대 가동)";
+          } else {
+            badge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30";
+            badge.textContent = d.mode;
+          }
+        }
+        if (desc && d.description) desc.textContent = d.description;
+
+        // 2. vm1 상태
+        const vm1Badge = document.getElementById("plVm1Badge");
+        const vm1Cost = document.getElementById("plVm1Cost");
+        const vm1State = (d.ec2?.vm1?.state || "unknown").toUpperCase();
+        if (vm1Badge) {
+          if (vm1State === "RUNNING") {
+            vm1Badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+            vm1Badge.textContent = "RUNNING";
+            if (vm1Cost) { vm1Cost.className = "text-amber-400 font-medium"; vm1Cost.textContent = "컴퓨팅 과금 중 ($0.0416/hr)"; }
+          } else if (vm1State === "STOPPED") {
+            vm1Badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700";
+            vm1Badge.textContent = "STOPPED";
+            if (vm1Cost) { vm1Cost.className = "text-emerald-400 font-medium"; vm1Cost.textContent = "컴퓨팅 $0/hr (비용 절감 중)"; }
+          } else {
+            vm1Badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";
+            vm1Badge.textContent = vm1State;
+          }
+        }
+
+        // 3. vm2 DB 상태
+        const dbRo = document.getElementById("plDbRo");
+        const dbRepl = document.getElementById("plDbRepl");
+        const awsDb = d.dbs?.aws || {};
+        if (dbRo) {
+          dbRo.textContent = awsDb.read_only ? "read_only=1 (대기)" : "read_only=0 (쓰기 허용)";
+          dbRo.className = awsDb.read_only ? "text-amber-400 font-mono" : "text-emerald-400 font-mono font-bold";
+        }
+        if (dbRepl) {
+          const lag = awsDb.lag !== undefined && awsDb.lag !== "-" ? awsDb.lag + "s" : "0s";
+          const src = awsDb.source_host || "t5";
+          dbRepl.textContent = `복제: ${src} 추종 (지연 ${lag})`;
+        }
+
+        // 4. Upstream 상태
+        const upTarget = document.getElementById("plUpstreamTarget");
+        const upBadge = document.getElementById("plUpstreamBadge");
+        const up = d.current_upstream || "unknown";
+        if (upTarget) {
+          if (up === "aws") {
+            upTarget.textContent = "AWS t8 (100.64.0.81:30080)";
+            if (upBadge) { upBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse"; upBadge.textContent = "AWS DR 서빙"; }
+          } else if (up === "t5") {
+            upTarget.textContent = "온프레미스 t5 (100.64.0.51:30080)";
+            if (upBadge) { upBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"; upBadge.textContent = "t5 상시 서빙"; }
+          } else if (up === "t3") {
+            upTarget.textContent = "온프레미스 t3 (100.64.0.31:30080)";
+            if (upBadge) { upBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30"; upBadge.textContent = "t3 운영 서빙"; }
+          } else {
+            upTarget.textContent = up;
+          }
+        }
+      } catch (e) {
+        console.error("loadPilotLightStatus error:", e);
+      } finally {
+        if (showSpin && icon) icon.classList.remove("fa-spin");
+      }
+    }
+
+    function triggerPilotLightAction(action, target = "t3") {
+      protectedAction("pilot_light", action, target);
+    }
+
+    async function executePilotLightAction(action, target) {
+      const box = document.getElementById("plLogBox");
+      const logEl = document.getElementById("plLogContent");
+      if (box) box.classList.remove("hidden");
+      if (logEl) {
+        logEl.innerHTML = `<div class="text-amber-400">⚡ [작업 시작] Pilot Light 액션 "${action}" 실행 중...</div>`;
+      }
+      try {
+        const res = await postJson("/api/pilot-light/action", { action, target });
+        if (res.success && res.result) {
+          const r = res.result;
+          let html = `<div class="text-emerald-400 font-bold">✔ [작업 완료] ${action.toUpperCase()} 성공!</div>`;
+          if (r.logs && Array.isArray(r.logs)) {
+            html += r.logs.map(l => `<div class="text-slate-300">  ${l}</div>`).join("");
+          }
+          if (logEl) logEl.innerHTML = html;
+        } else {
+          if (logEl) logEl.innerHTML = `<div class="text-rose-400 font-bold">✘ [작업 실패] ${res.error || "알 수 없는 오류"}</div>`;
+        }
+      } catch (err) {
+        if (logEl) logEl.innerHTML = `<div class="text-rose-400 font-bold">✘ [오류 발생] ${err.message}</div>`;
+      } finally {
+        loadPilotLightStatus(true);
+        loadAwsStatus(true);
+      }
+    }
+
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@300;400;600;700;800&display=swap');
+    body { font-family: 'Pretendard', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen"><a href="#" aria-hidden="true" rel="nofollow noopener" style="display: none !important; visibility: hidden !important"></a>
+  <!-- Full-width FHD Header (AWS-centric Navigation & Status) -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <span class="text-3xl">☁️</span>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-transparent">
+              DuckCloud AWS(t8) 관리 대시보드
+            </h1>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">PORT 5051</span>
+          </div>
+          <p class="text-[11px] text-slate-400">ap-southeast-2 · VPC 10.200.0.0/16 · 평소 꺼 둠(Pilot Light) · 온프레미스 장애 시 AWS t8-vm1 · t8-vm2 가 운영으로 승격</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <nav class="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800 flex-wrap">
+          <a href="/aws/" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition"><i class="fa-brands fa-aws mr-1"></i>AWS 개요</a>
+          <a href="#migrationEstimateSection" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-400 hover:bg-slate-800 transition"><i class="fa-solid fa-calculator mr-1"></i>전환 비용 환산</a>
+          <a href="#billingPanel" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-400 hover:bg-slate-800 transition"><i class="fa-solid fa-toggle-on mr-1"></i>과금 제어 (OTP)</a>
+          <a href="#pilotLightSection" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:bg-slate-800 transition"><i class="fa-solid fa-fire-flame-curved mr-1"></i>Pilot Light 제어</a>
+          <a href="/aws/aws-services" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 hover:bg-slate-800 transition"><i class="fa-solid fa-layer-group mr-1"></i>서비스·기술 비교</a>
+          <a href="/aws/billing-history" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition"><i class="fa-solid fa-receipt mr-1"></i>과금 명세</a>
+          <a href="/aws/aws-connection" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-300 hover:bg-slate-800 transition"><i class="fa-solid fa-shield-halved mr-1"></i>연결·보안</a>
+        </nav>
+
+        <!-- OTP Security Badge & Control -->
+        <div id="otpStatusBox" class="flex items-center">
+          <button onclick="openOtpModal()" id="otpBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 transition">
+            <i class="fa-solid fa-lock text-rose-400 text-[11px]"></i>
+            <span id="otpBtnText">과금 제어 잠김 (OTP)</span>
+          </button>
+        </div>
+
+        <span id="awsStateBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800">
+          <span class="w-2 rounded-full bg-slate-500"></span>
+          <span>상태 확인 중...</span>
+        </span>
+        <button onclick="loadAwsStatus(true); fetchBilling(true); loadMigrationEstimate();" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800 hover:bg-slate-700 transition" title="새로고침">
+          <i id="awsRefreshIcon" class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- AWS Pilot Light (비용 최소화 DR) 운영 & 시나리오 제어 센터 -->
+    <section id="pilotLightSection" class="bg-slate-900/80 rounded-2xl border border-amber-500/30 p-6 shadow-2xl backdrop-blur relative overflow-hidden">
+      <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <!-- 헤더 & 모드 상태 -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl shadow-inner">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-bold text-white">AWS Pilot Light 재해복구 (DR) 운영 컨트롤러</h2>
+              <span id="plModeBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                조회 중…
+              </span>
+            </div>
+            <p id="plModeDesc" class="text-xs text-slate-400 mt-0.5">
+              평시 AWS App(vm1)을 OFF하여 컴퓨팅 비용 $0 유지 · 핵심 DB(vm2)만 가동하여 온프레미스 실시간 GTID 복제 유지
+            </p>
+          </div>
+        </div>
+        
+        <!-- 비용 절감 배너 -->
+        <div class="flex items-center gap-3 bg-slate-950/70 px-4 py-2.5 rounded-xl border border-slate-800">
+          <div class="text-right">
+            <div class="text-[11px] font-semibold text-emerald-400"><i class="fa-solid fa-piggy-bank mr-1"></i>컴퓨팅 과금 66.7% 절감</div>
+            <div class="text-xs text-slate-300">월 약 $30.00 (약 4.2만 원) 순수 절감</div>
+          </div>
+          <div class="h-7 w-px bg-slate-800"></div>
+          <button onclick="loadPilotLightStatus(true)" class="p-2 text-slate-400 hover:text-white rounded-lg bg-slate-800 hover:bg-slate-700 transition" title="새로고침">
+            <i id="plRefreshIcon" class="fa-solid fa-arrows-rotate text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3대 컴포넌트 실시간 상태 그리드 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-5">
+        <!-- 1. AWS App vm1 -->
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-400"><i class="fa-solid fa-server mr-1.5 text-blue-400"></i>AWS App (vm1)</span>
+            <span id="plVm1Badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">-</span>
+          </div>
+          <div class="text-sm font-bold text-slate-200" id="plVm1Name">duckcloud-aws-vm1</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
+            <span>IP: <code class="text-slate-300">100.64.0.81</code></span>
+            <span id="plVm1Cost" class="text-emerald-400 font-medium">비용 $0/hr (STOPPED)</span>
+          </div>
+        </div>
+
+        <!-- 2. AWS DB vm2 -->
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-400"><i class="fa-solid fa-database mr-1.5 text-emerald-400"></i>AWS DB (vm2)</span>
+            <span id="plVm2Badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">RUNNING</span>
+          </div>
+          <div class="text-sm font-bold text-slate-200" id="plVm2Name">duckcloud-aws-vm2</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
+            <span id="plDbRepl">복제: t5 추종 (지연 0s)</span>
+            <span id="plDbRo" class="text-amber-400 font-mono">read_only=1</span>
+          </div>
+        </div>
+
+        <!-- 3. Frontdoor Upstream -->
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-400"><i class="fa-solid fa-route mr-1.5 text-purple-400"></i>공개 입구 (Frontdoor)</span>
+            <span id="plUpstreamBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">라우팅 확인</span>
+          </div>
+          <div class="text-sm font-bold text-slate-200" id="plUpstreamTarget">온프레미스 t5 (100.64.0.51:30080)</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
+            <span>현재 서빙 사이트</span>
+            <span class="text-purple-300 font-semibold" id="plUpstreamLabel">Active Serving</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 시나리오 3단계 원클릭 제어 버튼 -->
+      <div class="bg-slate-950/90 p-4 rounded-xl border border-slate-800">
+        <div class="text-xs font-bold text-slate-300 mb-3 flex items-center justify-between">
+          <span><i class="fa-solid fa-play mr-1.5 text-amber-400"></i>Pilot Light 3단계 시나리오 원클릭 실행 (관리자 OTP 보호)</span>
+          <span class="text-[11px] font-normal text-slate-400">작업 실행 시 OTP 인증 후 단계별 자동화 파이프라인 수행</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <!-- 버튼 1: 평시 Pilot Light -->
+          <button onclick="triggerPilotLightAction('pilot')" id="btnPlPilot" class="flex flex-col items-start p-3.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-slate-600 transition text-left group">
+            <div class="flex items-center justify-between w-full mb-1">
+              <span class="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition">① [평시] Pilot Light 모드 진입</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">비용 최소화</span>
+            </div>
+            <p class="text-[11px] text-slate-400">vm1 인스턴스 정지(비용 $0) · vm2 DB read_only=1 복제 대기 유지</p>
+          </button>
+
+          <!-- 버튼 2: 2차 DR 승격 -->
+          <button onclick="triggerPilotLightAction('promote')" id="btnPlPromote" class="flex flex-col items-start p-3.5 rounded-xl bg-gradient-to-r from-amber-950/40 to-orange-950/40 hover:from-amber-900/50 hover:to-orange-900/50 border border-amber-600/40 hover:border-amber-500 transition text-left group">
+            <div class="flex items-center justify-between w-full mb-1">
+              <span class="text-xs font-bold text-amber-300 group-hover:text-amber-200 transition">② [장애] 2차 DR 발동 (AWS 승격)</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">RTO 30~60초</span>
+            </div>
+            <p class="text-[11px] text-slate-300">vm1 인스턴스 ON -> 부팅 대기 -> vm2 DB 승격 -> 앱 활성화 -> 트래픽 전환</p>
+          </button>
+
+          <!-- 버튼 3: 온프레미스 복구 -->
+          <button onclick="triggerPilotLightAction('failback')" id="btnPlFailback" class="flex flex-col items-start p-3.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-purple-500/30 hover:border-purple-500/50 transition text-left group">
+            <div class="flex items-center justify-between w-full mb-1">
+              <span class="text-xs font-bold text-purple-300 group-hover:text-purple-200 transition">③ [복구] 온프레미스 t3 복귀</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">페일백</span>
+            </div>
+            <p class="text-[11px] text-slate-400">t3 DB 승격 -> Nginx 복귀 -> vm2 DB 대기 복귀 -> vm1 인스턴스 OFF</p>
+          </button>
+        </div>
+
+        <!-- 실행 로그 터미널 창 -->
+        <div id="plLogBox" class="mt-4 p-3 rounded-lg bg-black/60 border border-slate-800 font-mono text-[11px] text-slate-400 hidden max-h-48 overflow-y-auto space-y-1">
+          <div class="text-slate-500 text-[10px] border-b border-slate-800 pb-1 flex justify-between items-center">
+            <span><i class="fa-solid fa-terminal mr-1"></i>Pilot Light 자동화 실행 로그</span>
+            <button onclick="document.getElementById('plLogBox').classList.add('hidden')" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div id="plLogContent" class="pt-1 space-y-0.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Row 1: 상단 카드 — 모드 · 메쉬 편성 · 노드 · 워커 -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="text-xs font-medium text-slate-400">AWS 모드</div>
+        <div class="text-xl font-bold mt-1.5 text-slate-200" id="modeText">조회 중…</div>
+        <p class="text-[11px] text-slate-500 mt-0.5" id="modeDesc">-</p>
+      </div>
+      <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="text-xs font-medium text-slate-400">메쉬 편성 (ctl 판정)</div>
+        <div class="text-xl font-bold font-mono text-cyan-300 mt-1.5" id="meshText">-</div>
+        <p class="text-[11px] text-slate-500 mt-0.5" id="meshDesc">hs.example.org names.json</p>
+      </div>
+      <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="text-xs font-medium text-slate-400">켜진 노드 / VPC</div>
+        <div class="text-xl font-bold font-mono text-emerald-400 mt-1.5" id="nodeCount">- / 2</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">duckcloud-vpc 10.200.0.0/16 · 공인 서브넷 2a</p>
+      </div>
+      <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="text-xs font-medium text-slate-400">추가 워커 ASG</div>
+        <div class="text-xl font-bold font-mono text-amber-300 mt-1.5" id="asgStatText">Desired: 0 / Run: 0</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">duckcloud-dr-app-asg 0~2 · 부족할 때만</p>
+      </div>
+    </section>
+
+    <!-- Row 2: 온프레미스 → AWS 1:1 대응 노드 패널 + 전원 / DR 흐름 -->
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div class="xl:col-span-2 bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-server text-amber-400 text-lg"></i>
+            <h2 class="text-base font-bold text-white">온프레미스 t3-vm(2대) → AWS t8-vm(2대) 대응</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="protectedAction('awsPower', 'on')" class="px-3 py-1.5 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold"><i class="fa-solid fa-power-off mr-1"></i>2대 켜기</button>
+            <button onclick="protectedAction('awsPower', 'off')" class="px-3 py-1.5 bg-rose-600/90 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold"><i class="fa-solid fa-moon mr-1"></i>2대 끄기</button>
+          </div>
+        </div>
+        <div id="nodePanel" class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+          <div class="text-slate-500">노드 조회 중…</div>
+        </div>
+        <p class="text-[11px] text-slate-500">켜기는 EC2 만 기동합니다. VPN 가입 · k3s · 앱 배치 확인은 Mac 에서 <code class="text-amber-300">bash infra/aws/up.sh --no-setup</code>. 켠 뒤 10분 정상이면 메쉬가 AWS 역할로 편성합니다.</p>
+      </div>
+
+      <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-3 shadow-xl">
+        <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <i class="fa-solid fa-bolt text-cyan-400 text-lg"></i>
+          <h2 class="text-base font-bold text-white">DR 발동 시 온프레미스 → AWS 전환 흐름</h2>
+        </div>
+        <ol id="flowList" class="space-y-2 text-[11px] text-slate-300"></ol>
+        <p class="text-[10px] text-slate-500">판정 · 승격 · 복귀: ctl duck-hsagent (ops/hsagent/mesh.py · provision.py). 대시보드는 표시 · 과금 제어만.</p>
+      </div>
+    </section>
+
+    <!-- Row 3: 📊 현재 DuckCloud 실사용 vs 전면 AWS 전환 시 서비스별 예상 비용 환산 (TCO FinOps) -->
+    <section id="demoSection" class="bg-slate-900/90 border border-cyan-900/60 rounded-2xl p-6 shadow-xl space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-cyan-300 flex items-center gap-2"><i class="fa-solid fa-flask"></i> 데모 — 서버 구성 (계정 연동 없음)</h2>
+          <p class="text-xs text-slate-400 mt-0.5">메모리 안 가짜 리전입니다. VM 을 추가 · 켜기 · 끄기 · 삭제하면 위 상태 · 아래 과금이 바로 바뀝니다. 제어는 OTP 가 필요합니다.</p>
+        </div>
+        <div class="text-xs text-slate-400">데모 OTP 코드 <span id="demoOtp" class="font-mono text-amber-300 font-bold text-sm">------</span></div>
+      </div>
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="text-[11px] text-slate-400">이름<input id="demoName" placeholder="worker-a" class="block mt-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-sm text-slate-200 font-mono w-40"></label>
+        <label class="text-[11px] text-slate-400">유형<select id="demoType" class="block mt-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-sm text-slate-200"></select></label>
+        <button onclick="demoAdd()" class="px-4 py-2 rounded-lg text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950"><i class="fa-solid fa-plus"></i> 인스턴스 추가</button>
+        <span id="demoMsg" class="text-xs text-slate-400"></span>
+      </div>
+      <div class="overflow-x-auto"><table class="w-full text-xs"><thead class="text-slate-500 text-left"><tr>
+        <th class="py-2 pr-3">이름</th><th class="py-2 pr-3">ID</th><th class="py-2 pr-3">유형 · 디스크</th><th class="py-2 pr-3">상태</th><th class="py-2"></th></tr></thead>
+        <tbody id="demoBody" class="divide-y divide-slate-800/60"></tbody></table></div>
+      <script>
+        const demoEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        async function demoPost(url, body) {
+          if (!OTP_AUTHED) { openOtpModal(); return; }
+          const r = await postJson(url, body);
+          document.getElementById('demoMsg').textContent = r.success ? '완료' : (r.error || '실패');
+          loadDemo(); loadAwsStatus(true); fetchBilling(true); loadPilotLightStatus(false);
+        }
+        function demoAdd() { demoPost('/api/demo/instance', {name: document.getElementById('demoName').value, type: document.getElementById('demoType').value}); }
+        async function loadDemo() {
+          try {
+            const d = await (await fetch('/api/demo/instances')).json();
+            const sel = document.getElementById('demoType');
+            if (!sel.options.length) sel.innerHTML = d.types.map(t => `<option ${t === 't3.small' ? 'selected' : ''}>${t}</option>`).join('');
+            const region = 'ap-southeast-2';
+            document.getElementById('demoBody').innerHTML = d.instances.length ? d.instances.map(i => `<tr>
+              <td class="py-2 pr-3 font-mono text-slate-200">${demoEsc(i.name)}</td><td class="py-2 pr-3 font-mono text-slate-500">${demoEsc(i.id)}</td>
+              <td class="py-2 pr-3">${demoEsc(i.type)} · ${i.disk}GB</td>
+              <td class="py-2 pr-3 ${i.on ? 'text-emerald-400' : 'text-slate-500'} font-bold">${i.on ? 'RUNNING' : 'STOPPED'}</td>
+              <td class="py-2 text-right whitespace-nowrap">
+                <button onclick='demoPost("/api/billing/toggle", {key: "ec2:${region}:${demoEsc(i.id)}", action: "${i.on ? 'off' : 'on'}"})' class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">${i.on ? '끄기' : '켜기'}</button>
+                <button onclick='demoPost("/api/demo/instance/remove", {id: "${demoEsc(i.id)}"})' class="px-2.5 py-1 rounded bg-rose-950/60 hover:bg-rose-900 text-rose-300">삭제</button></td></tr>`).join('')
+              : '<tr><td colspan="5" class="py-3 text-slate-500">추가한 VM 없음 — vm1 · vm2 는 위 Pilot Light 칸에서 다룹니다</td></tr>';
+            const o = await (await fetch('/api/demo/otp')).json();
+            document.getElementById('demoOtp').textContent = o.code || '-';
+          } catch (e) { console.error('loadDemo', e); }
+        }
+        const demoTick = () => { loadDemo(); loadPilotLightStatus(false); };
+        demoTick(); setInterval(demoTick, 5000);
+      </script>
+    </section>
+
+    <section id="migrationEstimateSection" class="bg-slate-900/90 border border-emerald-900/60 rounded-2xl p-6 shadow-xl space-y-5">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg">
+            <i class="fa-solid fa-calculator"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              DuckCloud 전면 AWS 전환 시 서비스별 예상 비용 환산치 (30일 TCO)
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">FinOps 견적</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">온프레미스(ctl · 팀원 장비)에서 운영 중인 모든 서비스를 AWS 완전 관리형 서비스로 100% 이전할 때의 항목별 환산 견적입니다.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-mono">기준: 30일(720h) · 시드니(ap-southeast-2) · 1$ = 1,400원</span>
+        </div>
+      </div>
+
+      <!-- TCO 4대 핵심 요약 카드 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+          <div class="text-[11px] text-slate-400 font-medium">① 현재 실사용 (Pilot Light)</div>
+          <div class="text-2xl font-bold font-mono text-emerald-400 mt-1" id="tcoCurrentUsd">약 $8.00</div>
+          <div class="text-[11px] text-slate-500 mt-0.5" id="tcoCurrentKrw">약 1.1만 원 / 30일 (EBS·스냅샷)</div>
+        </div>
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+          <div class="text-[11px] text-slate-400 font-medium">② 현재 + AWS 상시 가동 (Warm)</div>
+          <div class="text-2xl font-bold font-mono text-cyan-400 mt-1" id="tcoWarmUsd">약 $52.00</div>
+          <div class="text-[11px] text-slate-500 mt-0.5" id="tcoWarmKrw">약 7.3만 원 / 30일 (t8 켜둠)</div>
+        </div>
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-amber-900/40 bg-amber-950/10">
+          <div class="text-[11px] text-amber-300 font-medium">③ 전면 AWS 전환 (All-in-AWS)</div>
+          <div class="text-2xl font-bold font-mono text-amber-400 mt-1" id="tcoAllUsd">약 $455.30</div>
+          <div class="text-[11px] text-amber-500/80 mt-0.5" id="tcoAllKrw">약 63.7만 원 (부가세 별도)</div>
+        </div>
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-rose-900/40 bg-rose-950/10">
+          <div class="text-[11px] text-rose-300 font-medium">비용 격차 & 크레딧 영향</div>
+          <div class="text-2xl font-bold font-mono text-rose-400 mt-1" id="tcoDiffUsd">+약 $447 (57배)</div>
+          <div class="text-[11px] text-rose-300/80 mt-0.5" id="tcoCreditAlert">남은 크레딧($168) 11일 소진</div>
+        </div>
+      </div>
+
+      <!-- 서비스별 세부 환산 테이블 -->
+      <div class="overflow-x-auto rounded-xl border border-slate-800">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/80 text-slate-400 text-[11px] border-b border-slate-800">
+            <tr>
+              <th class="py-3 px-3 w-[15%]">업무 영역</th>
+              <th class="py-3 px-3 w-[20%]">현재 온프레미스 (실사용)</th>
+              <th class="py-3 px-3 text-right w-[10%]">현재 비용</th>
+              <th class="py-3 px-3 w-[25%]">전환 대상 AWS 완전관리형 서비스</th>
+              <th class="py-3 px-3 text-right w-[15%]">AWS 환산 비용 (월)</th>
+              <th class="py-3 px-3 w-[15%]">세부 구성 사유</th>
+            </tr>
+          </thead>
+          <tbody id="tcoTableBody" class="divide-y divide-slate-800/60 font-sans">
+            <tr><td colspan="6" class="py-4 px-3 text-center text-slate-500">견적 데이터 로딩 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 전환 가이드 & FinOps 팁 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
+        <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+          <div class="font-bold text-amber-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            AWS 전환 시 필수 선행 조치
+          </div>
+          <ul class="space-y-1 text-slate-400 text-[11px]">
+            <li>• 현재 계정은 <b class="text-white">무료 플랜(FREE)</b>이며 남은 크레딧은 <b class="text-emerald-400">$168.49</b>입니다.</li>
+            <li>• 전면 전환 시 약 <b class="text-rose-400">11일 만에 크레딧이 전액 소진</b>되어 계정이 일시 정지될 수 있습니다.</li>
+            <li>• 30일 상시 운영을 위해서는 <b>AWS Settings > Billing</b>에서 <b class="text-white">유료 플랜 전환</b> 및 <b class="text-white">지출 한도($550 이상)</b> 설정이 필수입니다.</li>
+          </ul>
+        </div>
+        <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+          <div class="font-bold text-cyan-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-piggy-bank"></i>
+            FinOps 비용 최적화 방안
+          </div>
+          <ul class="space-y-1 text-slate-400 text-[11px]">
+            <li>• 1년 Savings Plans(컴퓨팅) 및 RDS Reserved Instances 적용 시 <b class="text-emerald-400">월 약 $50 (약 11%)</b> 추가 절감.</li>
+            <li>• 비업무시간(야간/주말) 개발 DB 및 비프로덕션 노드 자동 스케줄 정지 시 <b class="text-emerald-400">월 약 $65</b> 절감.</li>
+            <li>• NAT Gateway 대신 S3/ECR/CloudWatch 전용 VPC 엔드포인트 직결 확대로 데이터 처리비 절감.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Row 4: 🛠️ AWS 기능별 과금 ON/OFF 제어 센터 (OTP 보호) -->
+    <section id="billingPanel" class="bg-slate-900/90 border border-amber-900/60 rounded-2xl p-6 shadow-xl space-y-5">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
+            <i class="fa-solid fa-power-off"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              기능별 AWS 과금 ON/OFF 제어 센터
+              <span id="otpLockBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                <i class="fa-solid fa-lock mr-1"></i>OTP 보호 활성화됨
+              </span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">실제 AWS 리소스를 켜고 끄며 과금을 제어합니다. 오조작 및 보안 사고를 방지하기 위해 <b>Google OTP(TOTP) 인증</b> 후 실행됩니다.</p>
+          </div>
+        </div>
+
+        <!-- 마스터 제어 버튼 -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="protectedAction('billingMaster', 'sleep')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600/90 hover:bg-rose-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-rose-950/50">
+            <i class="fa-solid fa-moon"></i>
+            <span>전체 절전 (OFF)</span>
+          </button>
+          <button onclick="protectedAction('billingMaster', 'demo')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600/90 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-lg shadow-emerald-950/50">
+            <i class="fa-solid fa-play"></i>
+            <span>시연 모드 (ON)</span>
+          </button>
+          <button onclick="fetchBilling(true)" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800 hover:bg-slate-700 transition" title="과금 새로고침">
+            <i id="bilRefreshIcon" class="fa-solid fa-arrows-rotate"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- OTP 인증 안내 알림줄 -->
+      <div id="otpNoticeBar" class="p-3 rounded-xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-rose-400"></i>
+          <span><b>보안 알림:</b> 과금 제어(전원·ASG·스위치)는 OTP 2차 인증을 통과한 관리자만 수행할 수 있습니다.</span>
+        </div>
+        <button onclick="openOtpModal()" class="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 text-[11px] font-bold">지금 인증하기</button>
+      </div>
+
+      <!-- 기능별 과금 상태 테이블 -->
+      <div class="overflow-x-auto rounded-xl border border-slate-800">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/80 text-slate-400 text-[11px] border-b border-slate-800">
+            <tr>
+              <th class="py-3 px-3 w-[18%]">기능 · 리소스</th>
+              <th class="py-3 px-3 w-[14%]">지금 상태</th>
+              <th class="py-3 px-3 w-[15%]">과금 방식</th>
+              <th class="py-3 px-3 text-right w-[10%]">시간당 단가</th>
+              <th class="py-3 px-3 w-[25%]">설명 · 용도</th>
+              <th class="py-3 px-3 text-center w-[18%]">제어 (OTP 필요)</th>
+            </tr>
+          </thead>
+          <tbody id="featuresTableBody" class="divide-y divide-slate-800/60 font-sans">
+            <tr><td colspan="6" class="py-6 px-3 text-center text-slate-500">과금 리소스 조회 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- OTP Verification Modal -->
+  <div id="otpModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <h3 class="font-bold text-white text-base">과금 제어 2단계 인증 (TOTP)</h3>
+        </div>
+        <button onclick="closeOtpModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-300 space-y-1">
+        <p>Google Authenticator 또는 OTP 앱에 표시된 <b class="text-amber-400">6자리 인증번호</b>를 입력하세요.</p>
+        <p class="text-[11px] text-slate-500">인증 완료 시 15분간 과금 제어 세션이 유지됩니다.</p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold text-slate-400">인증 코드 (6자리)</label>
+        <input type="text" id="otpCodeInput" maxlength="6" inputmode="numeric" placeholder="000000"
+          class="w-full text-center tracking-[0.5em] text-2xl font-mono py-2.5 px-4 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
+          onkeyup="if(event.key==='Enter'||this.value.length===6) submitOtpAuth();">
+        <p id="otpErrorMsg" class="hidden text-xs text-rose-400 font-medium"></p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <button onclick="closeOtpModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">취소</button>
+        <button onclick="submitOtpAuth()" id="otpSubmitBtn" class="px-5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>인증 및 실행</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let bilFetching = false;
+    let OTP_AUTHED = false;
+    let OTP_TOKEN = localStorage.getItem('duck_aws_otp_token') || '';
+    let OTP_EXPIRES_AT = 0;
+    let PENDING_ACTION = null;
+
+    // --- OTP Authentication Logic ---
+    async function checkOtpStatus() {
+      try {
+        const r = await fetch('/api/otp/status', {
+          headers: OTP_TOKEN ? {'X-Duck-OTP': OTP_TOKEN} : {}
+        });
+        const d = await r.json();
+        OTP_AUTHED = d.authenticated;
+        if (OTP_AUTHED) {
+          OTP_EXPIRES_AT = Date.now() + (d.expires_in * 1000);
+          updateOtpUI(true, d.expires_in);
+        } else {
+          OTP_TOKEN = '';
+          localStorage.removeItem('duck_aws_otp_token');
+          updateOtpUI(false, 0);
+        }
+      } catch (e) {
+        console.error('OTP status check failed:', e);
+      }
+    }
+
+    function updateOtpUI(authed, expiresIn) {
+      const btn = document.getElementById('otpBtn');
+      const text = document.getElementById('otpBtnText');
+      const lockBadge = document.getElementById('otpLockBadge');
+      const noticeBar = document.getElementById('otpNoticeBar');
+
+      if (authed) {
+        btn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition';
+        btn.onclick = () => { if (confirm('OTP 인증 세션을 종료하시겠습니까?')) otpLogout(); };
+        const mins = Math.floor(expiresIn / 60);
+        text.innerHTML = '<i class="fa-solid fa-lock-open text-emerald-400 text-[11px]"></i> OTP 인증됨 (' + mins + '분)';
+        lockBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        lockBadge.innerHTML = '<i class="fa-solid fa-lock-open mr-1"></i>OTP 인증 해제됨 (제어 활성)';
+        noticeBar.className = 'p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-xs text-emerald-300 flex items-center justify-between';
+        noticeBar.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-400"></i><span><b>인증 활성:</b> OTP 2단계 인증이 완료되었습니다. 과금 제어 기능을 안전하게 사용하실 수 있습니다.</span></div>'
+          + '<button onclick="otpLogout()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">세션 종료</button>';
+      } else {
+        btn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 transition';
+        btn.onclick = () => openOtpModal();
+        text.innerHTML = '<i class="fa-solid fa-lock text-rose-400 text-[11px]"></i> 과금 제어 잠김 (OTP)';
+        lockBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/20';
+        lockBadge.innerHTML = '<i class="fa-solid fa-lock mr-1"></i>OTP 보호 활성화됨';
+        noticeBar.className = 'p-3 rounded-xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 flex items-center justify-between';
+        noticeBar.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-shield-halved text-rose-400"></i><span><b>보안 알림:</b> 과금 제어(전원·ASG·스위치)는 OTP 2차 인증을 통과한 관리자만 수행할 수 있습니다.</span></div>'
+          + '<button onclick="openOtpModal()" class="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 text-[11px] font-bold">지금 인증하기</button>';
+      }
+    }
+
+    function openOtpModal(action = null) {
+      PENDING_ACTION = action;
+      document.getElementById('otpErrorMsg').classList.add('hidden');
+      document.getElementById('otpCodeInput').value = '';
+      document.getElementById('otpModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('otpCodeInput').focus(), 100);
+    }
+
+    function closeOtpModal() {
+      document.getElementById('otpModal').classList.add('hidden');
+      PENDING_ACTION = null;
+    }
+
+    async function submitOtpAuth() {
+      const code = document.getElementById('otpCodeInput').value.trim();
+      const errEl = document.getElementById('otpErrorMsg');
+      if (code.length !== 6) {
+        errEl.innerText = '6자리 숫자를 입력하세요.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      try {
+        const resp = await fetch('/api/otp/verify', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({code})
+        });
+        const res = await resp.json();
+        if (res.success) {
+          OTP_TOKEN = res.token;
+          OTP_AUTHED = true;
+          localStorage.setItem('duck_aws_otp_token', res.token);
+          updateOtpUI(true, res.expires_in);
+          closeOtpModal();
+          alert('OTP 인증 성공: 과금 제어 권한이 15분간 부여되었습니다.');
+          if (PENDING_ACTION) {
+            const act = PENDING_ACTION;
+            PENDING_ACTION = null;
+            executeAction(act.type, act.arg1, act.arg2);
+          }
+        } else {
+          errEl.innerText = res.error || '인증번호가 올바르지 않습니다.';
+          errEl.classList.remove('hidden');
+        }
+      } catch (e) {
+        errEl.innerText = '서버 통신 오류가 발생했습니다.';
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    async function otpLogout() {
+      try {
+        await fetch('/api/otp/logout', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-Duck-OTP': OTP_TOKEN},
+          body: JSON.stringify({token: OTP_TOKEN})
+        });
+      } catch (e) {}
+      OTP_AUTHED = false;
+      OTP_TOKEN = '';
+      localStorage.removeItem('duck_aws_otp_token');
+      updateOtpUI(false, 0);
+      alert('OTP 인증 세션이 종료되었습니다. 과금 제어가 잠깁니다.');
+    }
+
+    function protectedAction(type, arg1 = null, arg2 = null) {
+      if (!OTP_AUTHED) {
+        openOtpModal({type, arg1, arg2});
+        return;
+      }
+      executeAction(type, arg1, arg2);
+    }
+
+    function executeAction(type, arg1, arg2) {
+      if (type === "pilot_light") {
+        executePilotLightAction(arg1, arg2);
+        return;
+      }
+      if (type === 'awsPower') awsPower(arg1);
+      else if (type === 'billingMaster') billingMaster(arg1);
+      else if (type === 'control') control(arg1, arg2);
+    }
+
+    // --- AWS Status & Billing Control Logic ---
+    async function postJson(url, data) {
+      const headers = {'Content-Type': 'application/json'};
+      if (OTP_TOKEN) headers['X-Duck-OTP'] = OTP_TOKEN;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(data || {})
+      });
+      if (resp.status === 403) {
+        const err = await resp.json();
+        if (err.otp_required) {
+          openOtpModal();
+        }
+        return err;
+      }
+      return await resp.json();
+    }
+
+    async function loadAwsStatus(showSpin = false) {
+      const icon = document.getElementById('awsRefreshIcon');
+      if (showSpin && icon) icon.className = 'fa-solid fa-arrows-rotate fa-spin';
+      try {
+        const data = await (await fetch('/api/aws/status' + (showSpin ? '?force=1' : ''))).json();
+        const m = data.mesh || {};
+        const badge = document.getElementById('awsStateBadge');
+        const primary = m.aws_is_primary || (data.mode && data.mode.includes("운영")), any = data.running > 0;
+        const isPilot = data.running === 1 && data.mode && data.mode.includes("Pilot Light");
+        badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border '
+          + (primary ? 'bg-rose-500/10 text-rose-300 border-rose-500/40' : isPilot ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : any ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' : 'bg-slate-900 text-slate-400 border-slate-800');
+        badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full ' + (primary ? 'bg-rose-400 animate-pulse' : isPilot ? 'bg-emerald-400' : any ? 'bg-cyan-400 animate-pulse' : 'bg-slate-500') + '"></span><span>'
+          + (primary ? 'AWS 가 운영 중 (2차 DR 활성화)' : isPilot ? 'Pilot Light 정상 (DB 상시 가동 · App 절전 대기)' : any ? ('AWS ' + data.running + '/2 켜짐') : 'AWS 꺼짐 (과금 OFF)') + '</span>';
+        document.getElementById('modeText').innerText = data.mode;
+        document.getElementById('modeText').className = 'text-xl font-bold mt-1.5 ' + (primary ? 'text-rose-300' : any ? 'text-emerald-300' : 'text-slate-300');
+        document.getElementById('modeDesc').innerText = data.mode_desc;
+        document.getElementById('meshText').innerText = m.ok ? ('운영=' + (m.primary_member_label || m.primary_member || '?')) : '읽기 실패';
+        document.getElementById('meshDesc').innerText = m.ok ? ('AWS(t8) 역할: ' + ((m.aws_roles || []).join(', ') || '공석/없음') + ' · ' + (m.at || '')) : (m.error || '');
+        document.getElementById('nodeCount').innerText = data.running + ' / 2';
+        document.getElementById('asgStatText').textContent = 'Desired: ' + data.asg.desired + ' / Run: ' + data.asg.running;
+        document.getElementById('nodePanel').innerHTML = (data.nodes || []).map(n => {
+          const on = n.state === 'running';
+          return '<div class="bg-slate-950 p-4 rounded-xl border ' + (on ? 'border-emerald-900' : 'border-slate-800') + ' space-y-2">'
+            + '<div class="flex items-center justify-between"><div class="font-bold text-sm text-white">' + esc(n.label) + ' <span class="text-slate-500 font-mono text-[11px]">' + esc(n.name) + '</span></div>'
+            + '<span class="px-2 py-0.5 rounded text-[11px] font-bold font-mono border ' + (on ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700') + '">' + esc(n.state) + '</span></div>'
+            + '<div class="text-[11px] text-amber-300"><i class="fa-solid fa-arrow-left-long mr-1"></i>대신하는 온프레미스: ' + esc(n.mirrors.host) + ' ' + esc(n.mirrors.vpn) + ' (' + esc(n.mirrors.role) + ')</div>'
+            + '<div class="text-[11px] text-slate-300">' + esc(n.role) + '</div>'
+            + '<div class="grid grid-cols-2 gap-2 font-mono text-[11px]">'
+            + '<div><span class="text-slate-500">ID</span><br>' + esc(n.instance_id) + '</div>'
+            + '<div><span class="text-slate-500">타입 · 디스크</span><br>' + esc(n.type) + ' · ' + esc(n.disk_gb) + 'GB</div>'
+            + '<div><span class="text-slate-500">VPN</span><br><span class="text-cyan-300">' + esc(n.host) + ' ' + esc(n.vpn) + '</span></div>'
+            + '<div><span class="text-slate-500">VPC / 공인</span><br>' + esc(n.private_ip) + ' / ' + esc(n.public_ip) + '</div>'
+            + '<div><span class="text-slate-500">SSM</span><br><span class="' + (n.ssm === 'Online' ? 'text-emerald-400' : 'text-slate-400') + '">' + esc(n.ssm) + '</span></div>'
+            + '<div><span class="text-slate-500">켜진 동안</span><br><span class="text-amber-300">$' + Number(n.hourly).toFixed(4) + '/h</span></div>'
+            + '</div><div class="text-[10px] text-slate-500">' + (n.services || []).map(esc).join(' · ') + '</div></div>';
+        }).join('');
+        document.getElementById('flowList').innerHTML = (data.flow || []).map((f, i) =>
+          '<li class="flex gap-2"><span class="shrink-0 w-5 h-5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-[10px] flex items-center justify-center font-bold">' + (i + 1) + '</span>'
+          + '<div><b class="text-white">' + esc(f[0]) + '</b> — ' + esc(f[1]) + '</div></li>').join('');
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (icon) icon.className = 'fa-solid fa-arrows-rotate';
+      }
+    }
+
+    async function awsPower(action) {
+      const msg = action === 'on'
+        ? 'AWS vm1 · vm2 두 대를 켭니다.\n(시간당 약 $0.063 과금 시작 · 설정 확인은 Mac 에서 infra/aws/up.sh --no-setup)'
+        : 'AWS vm1 · vm2 두 대를 끕니다.\n(AWS 가 운영 중이면 서버가 거부합니다 · 끄면 5분 뒤 AWS 역할 공석)';
+      if (!confirm(msg)) return;
+      const r = await postJson('/api/aws/power/' + action, {});
+      if (!r.success) alert('실패: ' + (r.error || ''));
+      setTimeout(() => { loadAwsStatus(true); fetchBilling(true); }, 2000);
+    }
+
+    // --- TCO Migration Estimate Logic ---
+    async function loadMigrationEstimate() {
+      try {
+        const resp = await fetch('/api/billing/migration-estimate');
+        const d = await resp.json();
+        const s = d.summary;
+        document.getElementById('tcoCurrentUsd').innerText = '약 $' + Number(s.current_pilot_light_usd).toFixed(2);
+        document.getElementById('tcoCurrentKrw').innerText = '약 ' + Math.round(s.current_pilot_light_krw / 10000 * 10) / 10 + '만 원 / 30일 (EBS·스냅샷)';
+        document.getElementById('tcoWarmUsd').innerText = '약 $' + Number(s.current_warm_standby_usd).toFixed(2);
+        document.getElementById('tcoWarmKrw').innerText = '약 ' + Math.round(s.current_warm_standby_krw / 10000 * 10) / 10 + '만 원 / 30일 (t8 켜둠)';
+        document.getElementById('tcoAllUsd').innerText = '약 $' + Number(s.all_in_aws_usd).toFixed(2);
+        document.getElementById('tcoAllKrw').innerText = '약 ' + Math.round(s.all_in_aws_krw / 10000 * 10) / 10 + '만 원 (부가세 별도)';
+        document.getElementById('tcoDiffUsd').innerText = '+약 $' + Number(s.diff_usd).toFixed(0) + ' (' + s.multiplier + ')';
+        document.getElementById('tcoCreditAlert').innerText = '남은 크레딧($' + s.remaining_credit_usd + ') ' + s.credit_exhaustion_days + '일 소진';
+
+        const tb = document.getElementById('tcoTableBody');
+        tb.innerHTML = (d.categories || []).map(c => `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-3 font-semibold text-white flex items-center gap-2">
+              <i class="fa-solid ${esc(c.icon)} text-emerald-400"></i>
+              ${esc(c.category)}
+            </td>
+            <td class="py-3 px-3 text-slate-300 font-mono text-[11px]">${esc(c.current_tech)}</td>
+            <td class="py-3 px-3 text-right text-slate-400 font-mono">$0</td>
+            <td class="py-3 px-3 text-cyan-300 font-medium text-[11px]">${esc(c.aws_service)}</td>
+            <td class="py-3 px-3 text-right font-mono font-bold text-amber-300 text-xs">
+              $${Number(c.aws_cost_usd).toFixed(2)}
+              <div class="text-[10px] text-slate-500 font-normal">약 ${(c.aws_cost_krw).toLocaleString()}원</div>
+            </td>
+            <td class="py-3 px-3 text-[11px] text-slate-400 leading-tight">${esc(c.details)}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load migration estimate:', e);
+      }
+    }
+
+    async function fetchBilling(force = false) {
+      if (bilFetching && !force) return;
+      bilFetching = true;
+      const icon = document.getElementById('bilRefreshIcon');
+      if (force && icon) icon.classList.add('fa-spin');
+      try {
+        const res = await fetch('/api/billing' + (force ? '?force=1' : ''));
+        renderBilling(await res.json());
+      } catch (err) {
+        console.error(err);
+      } finally {
+        bilFetching = false;
+        if (icon) setTimeout(() => icon.classList.remove('fa-spin'), 400);
+      }
+    }
+
+    function stateBadge(f) {
+      if (f.kind === 'plan') return '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">확장 예정</span>';
+      if (f.kind === 'fixed') return '<span class="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-900">고정비</span>';
+      if (f.warn) return '<span class="px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800">⚠ ' + esc(f.state) + '</span>';
+      if (f.busy) return '<span class="px-2 py-0.5 rounded text-[10px] bg-amber-950 text-amber-300 border border-amber-800"><i class="fa-solid fa-spinner fa-spin mr-1"></i>' + esc(f.state) + '</span>';
+      return f.on
+        ? '<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">● ' + esc(f.state) + '</span>'
+        : '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">○ ' + esc(f.state) + '</span>';
+    }
+
+    function controlHtml(f) {
+      const k = f.key;
+      if (f.kind === 'plan') return '<span class="text-slate-600 text-[11px]">-</span>';
+      if (f.kind === 'fixed') return '<span class="text-slate-500 text-[11px]">인스턴스·스냅숏 연동</span>';
+      if (k.startsWith('ec2_')) {
+        const act = f.on ? 'stop' : 'start';
+        const label = f.on ? '정지' : '시작';
+        const cls = f.on ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-emerald-600 hover:bg-emerald-500 text-white';
+        return '<button onclick="protectedAction(\'control\', \'' + k + '\', \'' + act + '\')" class="px-2.5 py-1 rounded text-[11px] font-semibold border ' + cls + '">' + label + '</button>';
+      }
+      if (k === 'asg_worker') {
+        return '<div class="inline-flex rounded-lg border border-slate-800 bg-slate-950 p-0.5">'
+          + [0, 1, 2].map(n => '<button onclick="protectedAction(\'control\', \'' + k + '\', \'scale_' + n + '\')" class="px-2 py-0.5 text-[11px] rounded ' + (f.asg_desired === n ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white') + '">' + n + '</button>').join('')
+          + '</div>';
+      }
+      if (k.startsWith('rds_')) {
+        const act = f.on ? 'stop' : 'start';
+        return '<button onclick="protectedAction(\'control\', \'' + k + '\', \'' + act + '\')" class="px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">' + (f.on ? '정지' : '시작') + '</button>';
+      }
+      return '<span class="text-slate-500 text-[11px]">-</span>';
+    }
+
+    function renderBilling(d) {
+      const tb = document.getElementById('featuresTableBody');
+      const feats = d.features || [];
+      const rows = feats.map(f => {
+        const hourly = f.hourly ? '$' + Number(f.hourly).toFixed(4) : (f.kind === 'fixed' ? '월 $' + Number(f.cost_month || 0).toFixed(2) : '-');
+        return '<tr class="hover:bg-slate-800/40 transition">'
+          + '<td class="py-3 px-3 font-semibold text-white">' + esc(f.label) + '<div class="text-[10px] text-slate-500 font-mono">' + esc(f.resource) + '</div></td>'
+          + '<td class="py-3 px-3">' + stateBadge(f) + '</td>'
+          + '<td class="py-3 px-3 text-slate-400 text-[11px]">' + esc(f.charge) + '</td>'
+          + '<td class="py-3 px-3 text-right font-mono text-amber-300">' + hourly + '</td>'
+          + '<td class="py-3 px-3 text-[11px] text-slate-400">' + esc(f.desc) + '</td>'
+          + '<td class="py-3 px-3 text-center">' + controlHtml(f) + '</td>'
+          + '</tr>';
+      }).join('');
+      tb.innerHTML = rows || '<tr><td colspan="6" class="py-4 px-3 text-slate-500 text-center">조회된 과금 리소스가 없습니다</td></tr>';
+    }
+
+    async function control(key, action) {
+      const r = await postJson('/api/billing/toggle', {key, action});
+      if (!r.success) alert('실패: ' + (r.error || ''));
+      fetchBilling(true);
+      loadAwsStatus(true);
+    }
+
+    async function billingMaster(mode) {
+      const msg = mode === 'sleep'
+        ? 'AWS vm1 · vm2 를 정지하고 워커 ASG 를 0으로 내립니다.\n(AWS 가 운영 중이면 서버가 거부합니다)'
+        : 'AWS vm1 · vm2 를 기동합니다.\n(시연 후 반드시 전체 절전을 눌러 과금을 방지하세요)';
+      if (!confirm(msg)) return;
+      const r = await postJson('/api/billing/master', {mode});
+      if (!r.success) alert('실패: ' + (r.error || ''));
+      fetchBilling(true);
+      loadAwsStatus(true);
+    }
+
+    // Initialize
+    checkOtpStatus();
+    loadAwsStatus(false);
+    loadMigrationEstimate();
+    fetchBilling(false);
+    setInterval(() => { loadAwsStatus(false); fetchBilling(false); }, 30000);
+  </script>
+</body>
+</html>

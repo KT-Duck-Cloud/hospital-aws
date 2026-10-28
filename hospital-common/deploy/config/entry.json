@@ -1,0 +1,8 @@
+{
+  "role": "S1",
+  "sock": "/run/entry/agent.sock",
+  "group": "console",
+  "peer_ssh": ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", "-i", "/root/.ssh/entry_peer", "entry@10.10.10.3"],
+  "peer_health": ["https://10.10.10.3:63728/health", "https://203.0.113.20:63728/health"],
+  "hs_store": "/var/lib/hsha"
+}

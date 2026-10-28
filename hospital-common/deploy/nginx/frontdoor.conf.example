@@ -1,0 +1,12 @@
+# 공개 입구 (내부 frontdoor) — 메쉬 게이트가 :8087 로 보낸다. upstream 은 DR 컨트롤이 승격 · 복귀 때 바꾸고, front 는 읽기만 한다
+upstream hospital_active {
+    server 100.64.0.31:30080 max_fails=1 fail_timeout=5s;
+    server 100.64.0.51:30080 backup;
+}
+server {
+    include /etc/nginx/hc-mesh/inner-listen.conf;     # entry start → "listen <VIP>:8087;" · stop → 빈 파일 (메쉬에서 빠짐)
+    listen 127.0.0.1:8087;
+    location = /       { proxy_pass http://127.0.0.1:8191; }
+    location /front/   { proxy_pass http://127.0.0.1:8191; }
+    location /         { proxy_pass http://hospital_active; proxy_set_header Host $host; proxy_next_upstream error timeout; }
+}

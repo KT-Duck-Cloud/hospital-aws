@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuckCloud · AWS 연결 구조 및 보안 권한</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@300;400;600;700;800&display=swap');
+    body { font-family: 'Pretendard', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    @media print { header, .no-print { display: none !important; } body { background: #fff; color: #000; } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen"><a href="#" aria-hidden="true" rel="nofollow noopener" style="display: none !important; visibility: hidden !important"></a>
+  <script>try{if(window.top!==window.self)document.documentElement.classList.add('embedded')}catch(e){document.documentElement.classList.add('embedded')}</script>
+  <style>html.embedded body>header,html.embedded .embed-hide{display:none!important}</style>
+  <header class="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-50 no-print">
+    <div class="w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
+      <a href="/aws/" class="flex items-center gap-2"><span class="text-2xl">🦆</span>
+        <span class="text-sm font-bold bg-gradient-to-r from-amber-400 to-orange-300 bg-clip-text text-transparent">DuckCloud 관제</span></a>
+      <nav class="flex flex-wrap gap-1"><a href="/aws/" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">AWS 개요 (AWS t8-vm)</a><a href="/aws/#billingPanel" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">기능별 과금 ON/OFF 제어</a><a href="/aws/aws-services" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">AWS 연계 서비스·기술</a><a href="/aws/#migrationEstimateSection" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">전면 전환 예상 견적</a><a href="/aws/billing-history" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">과금 명세</a><a href="/aws/aws-connection" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 font-bold">AWS 연결 구조</a></nav>
+    </div>
+  </header>
+
+  <main class="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <section class="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-network-wired text-cyan-400"></i> AWS & Cloudflare 연결 구조 및 보안 권한
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">
+          이 대시보드가 로컬에서 <b class="text-slate-200">AWS CLI / SDK</b> 및 <b class="text-slate-200">Cloudflare API</b>를 어떻게 호출하고 제어하는지 실시간 확인합니다.
+        </p>
+      </div>
+      <div class="flex items-center gap-2 no-print">
+        <button onclick="loadConnection(true)" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+          <i id="connRefreshIcon" class="fa-solid fa-arrows-rotate text-cyan-400"></i> 상태 새로고침
+        </button>
+      </div>
+    </section>
+
+    <!-- 연결 식별 메트릭 카드 -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>AWS STS 식별 주체</span>
+          <span id="cIdentBadge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800">정상</span>
+        </div>
+        <div id="cAccount" class="text-xl font-bold font-mono text-white">...</div>
+        <div id="cArn" class="text-[11px] font-mono text-slate-400 truncate" title="...">-</div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>AWS CLI 인증 프로필</span>
+          <span id="cProfileName" class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-800">aws-agent</span>
+        </div>
+        <div id="cAuthKind" class="text-sm font-semibold text-slate-200">...</div>
+        <div id="cCliVersion" class="text-[11px] font-mono text-slate-400 truncate">-</div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>타깃 리전 & 엔드포인트</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800">DR Sydney</span>
+        </div>
+        <div id="cRegion" class="text-xl font-bold font-mono text-cyan-400">ap-southeast-2</div>
+        <div class="text-[11px] text-slate-400">글로벌: us-east-1 (Budgets/CE)</div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>Cloudflare DNS 연동</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-orange-950 text-orange-300 border border-orange-800">v4 API</span>
+        </div>
+        <div class="text-xl font-bold font-mono text-amber-300">example.org</div>
+        <div class="text-[11px] text-slate-400">Zone ID: 757ba2eac8d497aa...</div>
+      </div>
+    </section>
+
+    <!-- AWS API 카탈로그 및 실시간 호출 상태 -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 space-y-3">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-amber-400"></i> AWS API 호출 카탈로그 & 실시간 상태 (총 18종)
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-0.5">
+            대시보드가 백그라운드 주기 조회 또는 사용자 제어 시 호출하는 모든 AWS CLI API입니다.
+          </p>
+        </div>
+        <div id="cApiFilters" class="flex flex-wrap gap-1.5 text-[11px]"></div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/60 text-slate-400 text-[10px] border-b border-slate-800">
+            <tr>
+              <th class="py-2.5 px-2">구분</th>
+              <th class="py-2.5 px-2">API 명령어 (CLI)</th>
+              <th class="py-2.5 px-2">용도</th>
+              <th class="py-2.5 px-2">호출 시점 / 주기</th>
+              <th class="py-2.5 px-2">필요 IAM 권한</th>
+              <th class="py-2.5 px-2">엔드포인트</th>
+              <th class="py-2.5 px-2 text-center">호출 수</th>
+              <th class="py-2.5 px-2 text-right">최근 응답</th>
+              <th class="py-2.5 px-2 text-center">상태</th>
+            </tr>
+          </thead>
+          <tbody id="cApiBody" class="divide-y divide-slate-800/60 font-mono text-[11px]"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 최소 권한 IAM 정책 및 콘솔 링크 2단 그리드 -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 최소 권한 IAM 정책 JSON -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-emerald-400"></i> 최소 권한 IAM 정책 (Least Privilege)
+            </h2>
+            <button onclick="copyPolicy()" id="copyPolicyBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-[11px] font-sans flex items-center gap-1">
+              <i class="fa-solid fa-copy"></i> 복사하기
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1 font-sans">
+            대시보드 전용 IAM 사용자/역할에 이 JSON 정책을 적용하면 최소 권한 원칙으로 안전하게 운영할 수 있습니다.
+          </p>
+          <pre id="cPolicyBlock" class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-300 font-mono overflow-x-auto max-h-80 overflow-y-auto mt-3">로딩 중...</pre>
+        </div>
+        <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-800 font-sans flex items-center justify-between">
+          <span>Read(조회 11종) vs Cost Control(제어 7종) 분리</span>
+          <a href="https://us-east-1.console.aws.amazon.com/iamv2/home#/policies" target="_blank" class="text-cyan-400 hover:underline">IAM 정책 콘솔 열기 &rarr;</a>
+        </div>
+      </div>
+
+      <!-- 콘솔 바로가기 링크 허브 -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 space-y-3">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-arrow-up-right-from-square text-cyan-400"></i> AWS & Cloudflare 콘솔 바로가기 허브
+        </h2>
+        <p class="text-[11px] text-slate-400">
+          대시보드에서 관제 중인 리소스의 실제 AWS 및 Cloudflare 웹 콘솔 화면으로 즉시 이동합니다.
+        </p>
+        <div id="cConsoleList" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+
+    const usd = (v, d = 2) => '$' + Number(v || 0).toFixed(d);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    let CONN_DATA = null;
+    let API_FILTER = 'all';
+
+    function renderConnection() {
+      const d = CONN_DATA;
+      if (!d || !d.success) {
+        document.getElementById('cIdentBadge').className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800';
+        document.getElementById('cIdentBadge').innerText = '인증 실패';
+        document.getElementById('cAccount').innerText = '인증 오류';
+        document.getElementById('cArn').innerText = d && d.identity ? d.identity.error : 'AWS CLI 세션 확인 필요';
+        return;
+      }
+
+      // STS & CLI
+      const ident = d.identity || {};
+      const cli = d.cli || {};
+      const sess = d.session || {};
+
+      document.getElementById('cAccount').innerText = ident.account || '-';
+      document.getElementById('cArn').innerText = ident.arn || '-';
+      document.getElementById('cArn').title = ident.arn || '-';
+      document.getElementById('cProfileName').innerText = d.profile || 'aws-agent';
+      document.getElementById('cAuthKind').innerText = cli.auth_kind || '임시 세션';
+      document.getElementById('cCliVersion').innerText = cli.version || '-';
+      document.getElementById('cRegion').innerText = d.region || 'ap-southeast-2';
+
+      if (ident.ok) {
+        document.getElementById('cIdentBadge').className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800';
+        document.getElementById('cIdentBadge').innerText = '연결 정상';
+      } else {
+        document.getElementById('cIdentBadge').className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800';
+        document.getElementById('cIdentBadge').innerText = '만료/오류';
+      }
+
+      // API Filters
+      const apis = d.apis || [];
+      const readCount = apis.filter(a => !a.is_write).length;
+      const writeCount = apis.filter(a => a.is_write).length;
+      const activeCount = apis.filter(a => a.count > 0).length;
+
+      const filterButtons = [
+        ['all', '전체 ' + apis.length],
+        ['read', '조회(Read) ' + readCount],
+        ['write', '제어(Write) ' + writeCount],
+        ['active', '실제 호출됨 ' + activeCount]
+      ];
+
+      document.getElementById('cApiFilters').innerHTML = filterButtons.map(([k, label]) =>
+        '<button onclick="setApiFilter(&quot;' + k + '&quot;)" class="px-2.5 py-1 rounded border ' +
+        (API_FILTER === k ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold' : 'border-slate-700 text-slate-300 hover:bg-slate-800') +
+        '">' + esc(label) + '</button>').join('');
+
+      // Filter APIs
+      const filtered = apis.filter(a => {
+        if (API_FILTER === 'read') return !a.is_write;
+        if (API_FILTER === 'write') return a.is_write;
+        if (API_FILTER === 'active') return a.count > 0;
+        return true;
+      });
+
+      document.getElementById('cApiBody').innerHTML = filtered.map(a => {
+        const typeBadge = a.is_write
+          ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-800">제어 Write</span>'
+          : '<span class="px-1.5 py-0.5 rounded text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-800">조회 Read</span>';
+
+        let statusBadge = '<span class="text-slate-600">-</span>';
+        if (a.count > 0) {
+          if (a.last_ok) {
+            statusBadge = '<span class="text-emerald-400 font-bold"><i class="fa-solid fa-check"></i> 성공</span>';
+          } else {
+            statusBadge = '<span class="text-rose-400 font-bold" title="' + esc(a.last_error) + '"><i class="fa-solid fa-xmark"></i> 실패</span>';
+          }
+        }
+
+        return '<tr class="hover:bg-slate-800/40 align-middle">'
+          + '<td class="py-2 px-2">' + typeBadge + '</td>'
+          + '<td class="py-2 px-2 text-white font-bold">' + esc(a.api) + '</td>'
+          + '<td class="py-2 px-2 text-slate-300 font-sans text-xs">' + esc(a.usage) + '</td>'
+          + '<td class="py-2 px-2 text-slate-400 font-sans text-[11px]">' + esc(a.timing) + '</td>'
+          + '<td class="py-2 px-2 text-amber-300 text-[10px]">' + esc(a.permission) + '</td>'
+          + '<td class="py-2 px-2 text-slate-400 text-[10px]">' + esc(a.endpoint) + '</td>'
+          + '<td class="py-2 px-2 text-center text-slate-200">' + a.count + '</td>'
+          + '<td class="py-2 px-2 text-right text-slate-300">' + (a.last_ms ? a.last_ms + ' ms' : '-') + '<div class="text-[9px] text-slate-500">' + esc(a.last_at) + '</div></td>'
+          + '<td class="py-2 px-2 text-center">' + statusBadge + '</td>'
+          + '</tr>';
+      }).join('') || '<tr><td colspan="9" class="py-4 px-2 text-slate-500 text-center">조건에 맞는 API가 없습니다</td></tr>';
+
+      // IAM Policy Block
+      document.getElementById('cPolicyBlock').innerText = d.iam_policy || '{}';
+
+      // Console Links
+      const consoles = d.consoles || [];
+      document.getElementById('cConsoleList').innerHTML = consoles.map(c =>
+        '<a href="' + esc(c.url) + '" target="_blank" class="block p-3 rounded-lg border border-slate-800 bg-slate-950/60 hover:border-slate-600 hover:bg-slate-800/40 transition group">'
+        + '<div class="flex items-center justify-between">'
+        + '<div class="flex items-center gap-2 font-bold text-xs text-white group-hover:text-cyan-400">'
+        + '<i class="fa-solid ' + esc(c.icon) + ' text-slate-400 group-hover:text-cyan-400"></i> ' + esc(c.name)
+        + '</div>'
+        + '<i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-500 group-hover:text-cyan-400"></i>'
+        + '</div>'
+        + '<div class="text-[11px] text-slate-400 mt-1">' + esc(c.desc) + '</div>'
+        + '</a>').join('');
+    }
+
+    function setApiFilter(k) {
+      API_FILTER = k;
+      renderConnection();
+    }
+
+    function copyPolicy() {
+      const text = document.getElementById('cPolicyBlock').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyPolicyBtn');
+        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> 복사 완료!';
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fa-solid fa-copy"></i> 복사하기';
+        }, 2000);
+      });
+    }
+
+    async function loadConnection(showSpinner) {
+      const icon = document.getElementById('connRefreshIcon');
+      if (showSpinner && icon) icon.className = 'fa-solid fa-arrows-rotate fa-spin text-cyan-400';
+      try {
+        const resp = await fetch('/api/connection');
+        CONN_DATA = await resp.json();
+        renderConnection();
+      } catch (err) {
+        console.error('Failed to load connection data:', err);
+      } finally {
+        if (icon) icon.className = 'fa-solid fa-arrows-rotate text-cyan-400';
+      }
+    }
+
+    loadConnection(false);
+  </script>
+</body>
+</html>

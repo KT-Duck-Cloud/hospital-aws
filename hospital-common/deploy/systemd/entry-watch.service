@@ -1,0 +1,8 @@
+[Unit]
+Description=입구 감시 (S1)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/hospital-common
+Environment=ENTRY_CONF=/etc/hospital-common/entry.json
+ExecStart=/usr/bin/python3 -m services.entry watch

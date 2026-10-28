@@ -1,0 +1,23 @@
+{
+  "slots": [
+    3,
+    5,
+    8
+  ],
+  "user_prefix": "t",
+  "prefix": "100.64.0.",
+  "control_ip": "100.64.0.1",
+  "login_server": "https://vpn.example.org",
+  "labels": {
+    "3": "1조 운영",
+    "5": "1조 대기",
+    "8": "AWS"
+  },
+  "protected": {},
+  "sock": "/run/pilotlight-vpn/agent.sock",
+  "group": "vpnjoin",
+  "ro_sock": "/run/pilotlight-vpn-ro/agent.sock",
+  "ro_group": "dashboard",
+  "headscale_db": "/var/lib/headscale/db.sqlite",
+  "watch_sec": 15
+}

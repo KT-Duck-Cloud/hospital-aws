@@ -1,0 +1,19 @@
+[Unit]
+Description=hospital-common console (VPN only)
+After=hostagent.service
+
+[Service]
+User=console
+Group=console
+WorkingDirectory=/opt/hospital-common
+Environment=CONSOLE_CONF=/etc/hospital-common/console.json
+ExecStart=/usr/bin/python3 -m services.console
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/hospital-common /var/log/hospital-common
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

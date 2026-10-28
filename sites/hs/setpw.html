@@ -1,0 +1,14 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>DuckCloud VPN 가입</title><style>body{font-family:system-ui,-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0f172a;color:#e2e8f0;margin:0}
+main{max-width:760px;margin:0 auto;padding:32px 16px}h1{font-size:20px;margin:0 0 4px}p.sub{color:#94a3b8;margin:0 0 24px;font-size:14px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:16px}
+label{display:block;font-size:13px;color:#94a3b8;margin:12px 0 4px}input{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:15px}
+button{margin-top:16px;padding:10px 16px;border:0;border-radius:8px;background:#0ea5e9;color:#fff;font-size:14px;cursor:pointer}
+button.sec{background:#334155}button.warn{background:#b45309}.err{background:#7f1d1d;color:#fecaca;padding:10px;border-radius:8px;font-size:14px}
+.ok{background:#14532d;color:#bbf7d0;padding:10px;border-radius:8px;font-size:14px}a{color:#38bdf8}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:8px 6px;border-bottom:1px solid #334155;text-align:left;vertical-align:top}
+code,pre{font-family:ui-monospace,Menlo,monospace;font-size:13px}pre{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+.on{color:#4ade80}.off{color:#f87171}.muted{color:#94a3b8;font-size:13px}form.inline{display:inline}form.inline button{margin:4px 4px 0 0;padding:6px 10px;font-size:13px}</style></head><body><main><h1>비밀번호 설정</h1><p class="sub">DuckCloud 팀 VPN (Headscale) 가입</p><div class="card"><p>1조 대기 님, 로그인에 쓸 비밀번호를 정하세요 (12자 이상).</p>
+<form method="post" action="/hs/join/setpw"><input type="hidden" name="t" value="TOKEN">
+<label>비밀번호</label><input name="pw" type="password" minlength="12" autocomplete="new-password" required>
+<label>비밀번호 확인</label><input name="pw2" type="password" minlength="12" autocomplete="new-password" required>
+<button>설정하고 시작</button></form><p class="muted">10분 안에 설정하세요.</p></div></main></body></html>

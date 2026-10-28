@@ -1,0 +1,35 @@
+# 메쉬 게이트 (@SELF@) — Cloudflare 커넥터가 여기(127.0.0.1:8088)로 보낸다 
+#   요청을 켜진(ON) 내부 frontdoor 들에 번갈아 나눈다: 이 서버 127.0.0.1:8087 · 다른 서버 @PEER_IP@:8087 (VPN)
+#   다른 서버가 OFF 면 그쪽 :8087 이 닫혀 있어 바로 이 서버만 쓴다 (connect 실패 → 다음 서버, 15초 동안 제외)
+#   응답 머리글: X-Duck-Gate = 들어온 게이트 · X-Duck-Inner = 처리한 내부 (S1 · S2)
+upstream duck_mesh {
+    server 127.0.0.1:8087 max_fails=1 fail_timeout=15s;
+    server @PEER_IP@:8087 max_fails=1 fail_timeout=15s;
+    keepalive 16;
+}
+map $upstream_addr $duck_inner {          # 실패해 다음으로 넘어가면 "앞, 뒤" 로 쌓인다 — 마지막(실제로 처리한 곳)으로 판정
+    default                  "?";
+    "~127\.0\.0\.1:8087$"   @SELF@;
+    "~@PEER_RE@:8087$"       @PEER@;
+}
+map $http_upgrade $duck_mesh_conn { default upgrade; "" ""; }
+server {
+    listen 127.0.0.1:8088;
+    server_name _;
+    client_max_body_size 20m;
+    location / {
+        proxy_pass http://duck_mesh;
+        proxy_http_version 1.1;
+        proxy_set_header Connection $duck_mesh_conn;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Duck-Entry @SELF@;
+        proxy_connect_timeout 1s;
+        proxy_read_timeout 60s;
+        proxy_next_upstream error timeout;
+        proxy_next_upstream_tries 2;
+        proxy_buffering off;
+        add_header X-Duck-Gate @SELF@ always;
+        add_header X-Duck-Inner $duck_inner always;
+    }
+}

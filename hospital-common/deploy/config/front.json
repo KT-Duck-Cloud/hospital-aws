@@ -1,0 +1,11 @@
+{
+  "listen": "127.0.0.1:8191",
+  "role": "S1",
+  "origin": "https://www.example.org",
+  "site_url": "https://www.example.org/",
+  "accounts_db": "/var/lib/hospital-common/accounts.db",
+  "frontdoor": "/etc/nginx/sites-available/hospital-frontdoor",
+  "labels": { "100.64.0.31": "온프레미스 t3 (주 운영)", "100.64.0.51": "온프레미스 t5 (1차 DR)", "100.64.0.81": "AWS t8 (2차 DR)" },
+  "entry_sock": "/run/entry/agent.sock",
+  "hs_store": "/var/lib/hsha"
+}

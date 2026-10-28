@@ -1,0 +1,9 @@
+[Unit]
+Description=입구 감시 (S1)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target

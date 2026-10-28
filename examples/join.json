@@ -1,0 +1,25 @@
+{
+  "listen": "127.0.0.1:8096",
+  "db": "/var/lib/pilotlight-join/join.db",
+  "agent_sock": "/run/pilotlight-vpn/agent.sock",
+  "login_server": "https://vpn.example.org",
+  "public_origin": "https://vpn.example.org",
+  "dr_pub": "/etc/pilotlight/id_ed25519.pub",
+  "members": [
+    {
+      "email": "site1@example.org",
+      "name": "1조 운영",
+      "slot": 3
+    },
+    {
+      "email": "site1b@example.org",
+      "name": "1조 대기",
+      "slot": 5
+    },
+    {
+      "email": "aws@example.org",
+      "name": "AWS 담당",
+      "slot": 8
+    }
+  ]
+}

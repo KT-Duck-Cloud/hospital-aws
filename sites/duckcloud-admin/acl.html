@@ -1,0 +1,226 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VPN 접근 규칙 (ACL)</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>
+:root{--bg:#0b1020;--side:#0f172a;--panel:#111827;--line:#1f2937;--text:#e5e7eb;--mute:#94a3b8;--amber:#f59e0b;--cy:#67e8f9;--ok:#34d399;--bad:#fb7185}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+a{color:inherit;text-decoration:none}
+.top{height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0f172acc}
+.brand{font-weight:800;color:var(--amber);white-space:nowrap}.brand small{color:var(--mute);font-weight:400;margin-left:8px;font-size:12px}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.pill{padding:3px 8px;border-radius:999px;border:1px solid #334155;font-size:11px}.pill.ro{border-color:#9f1239;color:#fecdd3;background:#4c0519}.pill.rw{border-color:#065f46;color:#a7f3d0;background:#022c22}
+.btn{padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;cursor:pointer}
+.wrap{display:flex;height:calc(100% - 52px)}
+nav.side{width:280px;min-width:280px;background:var(--side);border-right:1px solid var(--line);overflow-y:auto;padding:10px 8px 24px}
+details{margin:2px 0}summary{list-style:none;cursor:pointer;padding:7px 10px;border-radius:8px;font-weight:700;font-size:13px;color:#e2e8f0;display:flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}summary:hover{background:#1e293b}summary .car{margin-left:auto;color:var(--mute);transition:transform .15s}details[open]>summary .car{transform:rotate(90deg)}
+.lv1{margin-left:12px;border-left:1px solid #1f2937;padding-left:6px}.lv2{margin-left:10px;border-left:1px dashed #1f2937;padding-left:6px}
+.item{display:block;padding:5px 10px;border-radius:7px;font-size:13px;color:#cbd5e1;cursor:pointer}.item:hover{background:#1e293b;color:#fff}
+.item.on{background:var(--amber);color:#111;font-weight:700}.item.top{font-weight:700;font-size:13px;color:#e2e8f0;padding:7px 10px;margin:2px 0}.item.off{color:#64748b;cursor:not-allowed;text-decoration:line-through}.item.off:hover{background:none;color:#64748b}.lv2 .item{font-size:12px;color:#a5b4c3}
+details.sub>summary{font-weight:600;font-size:13px;color:#cbd5e1}
+main.body{flex:1;min-width:0;position:relative}iframe{width:100%;height:100%;border:0;background:#020617;display:block}
+.crumb{position:absolute;top:0;right:0;z-index:2;display:flex;gap:6px;padding:6px}
+#menuBtn{display:none}
+@media (max-width:860px){nav.side{position:fixed;z-index:20;top:52px;bottom:0;left:0;transform:translateX(-100%);transition:transform .2s}nav.side.open{transform:none}#menuBtn{display:inline-block}.brand small{display:none}}
+.login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.login input{width:100%;padding:10px;margin-top:10px;border-radius:9px;border:1px solid #334155;background:#020617;color:#e5e7eb;font-size:15px}
+.login button{width:100%;margin-top:14px;padding:10px;border:0;border-radius:9px;background:var(--amber);font-weight:800;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:1.3em;margin-top:8px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+.k{font-size:11px;color:var(--mute)}.v{font-size:22px;font-weight:800;margin-top:4px}.s{font-size:11px;color:var(--mute);margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute)}
+.ok{color:var(--ok)}.mute{color:var(--mute)}.cy{color:var(--cy)}.amb{color:var(--amber)}.bad{color:var(--bad)}h2{font-size:14px;margin:18px 0 8px}
+</style><script>(function(){var lg=/^\/_(login|otp)$/.test(location.pathname);if(lg){if(window.top!==window.self){window.top.location.href=location.href}return}var go=function(){try{window.top.location.href='/_login'}catch(e){location.href='/_login'}};var f=window.fetch;if(f&&!f.__duck){window.fetch=function(){return f.apply(this,arguments).then(function(r){if(r.status===401)go();return r})};window.fetch.__duck=1}})();</script></head><body><style>
+.ap{padding:14px;max-width:1300px;margin:0 auto}.ap.embed{padding:8px}
+.ah{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.ah h1{font-size:18px;margin:0}.ah i{color:var(--amber);font-size:20px}
+.meta{font-size:11px;color:var(--mute)}.warnline{font-size:12px;color:#fde68a;margin-top:4px}
+.tabs{display:flex;gap:4px;margin:12px 0 8px;flex-wrap:wrap}.tab{padding:6px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;cursor:pointer;font-size:13px}
+.tab.on{background:var(--amber);color:#111;border-color:var(--amber);font-weight:700}
+.pane[hidden]{display:none}
+.chipl{display:flex;flex-wrap:wrap;gap:4px}.c{font:11px ui-monospace,Menlo,monospace;padding:2px 6px;border-radius:6px;background:#1e293b;color:#e2e8f0}
+.c.any{background:#4c0519;color:#fecdd3}.c.port{background:#082f49;color:#7dd3fc}
+.rc{font-size:12px;color:#94a3b8;white-space:pre-wrap}
+tr.hl td{background:#052e16}tr.hlp td{background:#1c1917}
+.eb{font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#cbd5e1;cursor:pointer}.eb:hover{border-color:var(--amber)}
+.eb.del:hover{border-color:#9f1239;color:#fecdd3}
+.add{margin-top:8px;font-size:12px;padding:5px 12px;border-radius:8px;border:1px dashed #a16207;background:transparent;color:#fde68a;cursor:pointer}
+.tst{display:grid;gap:8px;grid-template-columns:1fr 1fr 110px auto;align-items:end}.tst label{font-size:11px;color:var(--mute)}
+.tst input,.f input,.f textarea{width:100%;padding:7px;border-radius:8px;border:1px solid #334155;background:#020617;color:#e5e7eb;font:13px inherit}
+@media (max-width:700px){.tst{grid-template-columns:1fr 1fr}}
+.res{margin-top:8px;border-radius:10px;padding:8px 12px;font-size:13px;border:1px solid}.res.ok{background:#022c22;border-color:#065f46;color:#a7f3d0}.res.no{background:#4c0519;border-color:#9f1239;color:#fecdd3}
+textarea.raw{width:100%;min-height:520px;font:12px/1.5 ui-monospace,Menlo,monospace;background:#020617;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:10px;tab-size:2}
+.dbar{position:sticky;bottom:0;margin-top:12px;background:#422006;border:1px solid #a16207;border-radius:12px;padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:5}
+.dbar[hidden]{display:none}.dbar b{color:#fde68a}
+.btn.pri{background:var(--amber);color:#111;border-color:var(--amber);font-weight:700}.btn.danger{border-color:#9f1239;color:#fecdd3}
+.diff{font:12px/1.45 ui-monospace,Menlo,monospace;background:#020617;border:1px solid #1e293b;border-radius:10px;padding:8px;max-height:360px;overflow:auto;white-space:pre}
+.diff .a{color:#86efac;background:#052e16}.diff .d{color:#fca5a5;background:#450a0a}.diff .h{color:#7dd3fc}
+.md{position:fixed;inset:0;background:#020617cc;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+.md[hidden]{display:none}.mbox{background:var(--panel);border:1px solid #334155;border-radius:14px;padding:16px;width:min(760px,100%)}
+.mbox h3{margin:0 0 8px;font-size:15px}.f{margin-top:8px}.f label{font-size:12px;color:var(--mute)}.f textarea{min-height:70px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.mrow{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.help{font-size:11px;color:var(--mute);margin-top:8px;line-height:1.6}
+.err2{color:var(--bad);font-size:12px;min-height:1.2em;margin-top:6px;white-space:pre-wrap}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;font-size:12px;z-index:60;border:1px solid}
+#toast[hidden]{display:none}#toast.bad{background:#4c0519;color:#fecdd3;border-color:#9f1239}#toast.ok{background:#022c22;color:#a7f3d0;border-color:#065f46}
+</style><main class="ap ">
+<div class="ah"><i class="fa-solid fa-network-wired"></i><h1>VPN 접근 규칙 (Headscale ACL)</h1>
+<span class="meta" id="meta">읽는 중…</span><button class="btn" id="reload" type="button" style="margin-left:auto">새로 읽기</button></div>
+<div class="warnline">⚠ 적용하면 실제 VPN 통신이 바뀝니다. 규칙에 없는 연결은 모두 막힘 · 적용은 이메일과 함께 기록되고, 확인에 실패하면 자동으로 되돌립니다.</div>
+<div class="err2" id="loadErr"></div>
+<div class="card" style="margin-top:10px"><div class="k" style="margin-bottom:6px">경로 시험 — 이 규칙(초안 기준)으로 출발 → 도착:포트 가 열리는지</div>
+<div class="tst"><div><label for="tSrc">출발 (이름 또는 VPN 주소)</label><input id="tSrc" list="nodeList" placeholder="t4-vm1 / 100.64.0.41"></div>
+<div><label for="tDst">도착</label><input id="tDst" list="nodeList" placeholder="t2-vm1 / 100.64.0.21"></div>
+<div><label for="tPort">포트</label><input id="tPort" inputmode="numeric" value="22"></div>
+<button class="btn pri" id="tGo" type="button">시험</button></div><datalist id="nodeList"></datalist><div id="tRes"></div></div>
+<div class="tabs"><button class="tab on" data-tab="rules" type="button">규칙 표</button><button class="tab" data-tab="raw" type="button">원문</button>
+<button class="tab" data-tab="alias" type="button">별칭 · 노드</button><button class="tab" data-tab="hist" type="button">적용 기록</button></div>
+<section class="pane" id="p-rules"><div class="err2" id="mErr"></div><div class="card"><table><thead><tr><th style="width:36px">#</th><th>설명 (주석)</th><th>출발</th><th>도착 : 포트</th><th style="width:130px"></th></tr></thead>
+<tbody id="rules"></tbody></table><button class="add" id="addRule" type="button">+ 규칙 추가 (맨 끝)</button></div></section>
+<section class="pane" id="p-raw" hidden><div class="meta" style="margin-bottom:6px">원문(hujson) 전체 — 주석 · hosts · groups 포함. 고친 내용은 초안이 되고, 아래 '미리보기 · 적용'으로 반영</div>
+<textarea class="raw" id="raw" spellcheck="false"></textarea></section>
+<section class="pane" id="p-alias" hidden><div class="card">
+<div class="ah" style="gap:8px"><div class="k" style="flex:1">VPN 노드 이름 → hosts 별칭 — VPN 목록에 있으면 그 이름으로 자동 등록 · 주소가 바뀌면 자동 수정 (컨트롤 서버, <span id="syncEvery">1분</span>마다)</div>
+<button class="btn pri" id="syncNow" type="button">지금 동기화</button></div><div id="syncState" style="margin:6px 0"></div>
+<table><thead><tr><th>이름 (별칭)</th><th>VPN 주소</th><th>hosts 값</th><th>등록</th><th>사용자</th><th>VPN</th></tr></thead><tbody id="nodes"></tbody></table>
+<div class="k" style="margin-top:12px">노드가 아닌 별칭 — 규칙에서 쓰는 이름 (자동으로 지우지 않음, 원문 탭에서 편집)</div><table><tbody id="hosts"></tbody></table></div></section>
+<section class="pane" id="p-hist" hidden><div class="card"><table><thead><tr><th>#</th><th>시각</th><th>이메일</th><th>메모</th><th>sha</th><th></th></tr></thead><tbody id="hist"></tbody></table>
+<div class="meta" style="margin-top:6px">'초안으로 불러오기' → 미리보기에서 지금과 비교 → 적용하면 그 버전으로 되돌아갑니다</div></div></section>
+<div class="dbar" id="dbar" hidden><b>적용 안 된 변경</b><span class="meta" id="dsum"></span>
+<button class="btn pri" id="pv" type="button">미리보기 · 적용</button><button class="btn" id="discard" type="button">초안 버리기</button></div>
+<div class="card" id="pvBox" hidden style="margin-top:10px"><div class="k">미리보기 — 지금 적용 중인 규칙과 다른 줄</div><div id="pvCheck"></div><div class="diff" id="pvDiff"></div>
+<div class="f"><label for="note">메모 (왜 바꾸나 — 기록에 남음)</label><input id="note" maxlength="300" placeholder="예: t4-vm1 → t2-vm1 SSH 점검용 임시 허용"></div>
+<div class="mrow"><button class="btn pri" id="apply" type="button">적용</button><button class="btn" id="pvClose" type="button">닫기</button><span class="err2" id="apErr"></span></div></div>
+</main>
+<div class="md" id="md" hidden role="dialog" aria-modal="true" aria-labelledby="mdT"><div class="mbox"><h3 id="mdT">규칙</h3>
+<div class="f"><label for="fCm">설명 (주석, 여러 줄 가능)</label><textarea id="fCm" style="min-height:44px;font-family:inherit"></textarea></div>
+<div class="f"><label for="fSrc">출발 — 한 줄에 하나 (또는 쉼표)</label><textarea id="fSrc" placeholder="t4@&#10;100.64.0.41"></textarea></div>
+<div class="f"><label for="fDst">도착 : 포트 — 한 줄에 하나</label><textarea id="fDst" placeholder="t2@:22&#10;100.64.0.21:22,80&#10;ctl:*"></textarea></div>
+<div class="help">형식: <span class="c">*</span> 전체 · <span class="c">t2@</span> t2 사용자 노드 전부 · <span class="c">100.64.0.21</span> 한 대 · <span class="c">100.64.0.0/24</span> 대역 ·
+<span class="c">ctl</span> hosts 별칭 · <span class="c">group:이름</span> · <span class="c">tag:이름</span> / 포트: <span class="c">:22</span> <span class="c">:22,80</span> <span class="c">:30000-30100</span> <span class="c">:*</span><br>
+저장해도 바로 적용되지 않습니다 — 초안에 들어가고, 아래 '미리보기 · 적용'에서 반영</div>
+<div class="err2" id="mdE"></div><div class="mrow"><button class="btn pri" id="mdS" type="button">초안에 저장</button><button class="btn" id="mdC" type="button">취소</button></div></div></div>
+<div id="toast" hidden></div><script>
+const $ = id => document.getElementById(id), esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let LIVE = null, DRAFT = '', MODEL = {rules: []}, NODES = [], EDIT = null, PV = null;
+function toast(m, ok){ const t = $('toast'); t.textContent = m; t.className = ok ? 'ok' : 'bad'; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 6000); }
+async function api(body){
+  const r = await fetch('/acl/api', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (r.status === 401) { top.location.href = '/_login'; throw new Error('로그인 필요'); }
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok || !j.ok) throw new Error(j.error || ('실패 ' + r.status));
+  return j;
+}
+function chips(list, dst){ return '<div class="chipl">' + list.map(x => { if (!dst) return '<span class="c' + (x === '*' ? ' any' : '') + '">' + esc(x) + '</span>';
+  const i = x.lastIndexOf(':'), a = x.slice(0, i), p = x.slice(i + 1); return '<span class="c' + (a === '*' ? ' any' : '') + '">' + esc(a) + '</span><span class="c port">:' + esc(p) + '</span>'; }).join('') + '</div>'; }
+function setDraft(c, m){
+  DRAFT = c; if (m) MODEL = m;
+  if ($('raw').value !== c) $('raw').value = c;
+  const dirty = LIVE && c !== LIVE.content; $('dbar').hidden = !dirty;
+  if (dirty) { const a = LIVE.content.split('\n').length, b = c.split('\n').length; $('dsum').textContent = '줄 ' + a + ' → ' + b; }
+  if (!dirty) $('pvBox').hidden = true;
+  render();
+}
+function render(hl){
+  $('mErr').textContent = MODEL.error || '';
+  $('rules').innerHTML = (MODEL.rules || []).map(r => '<tr data-i="' + r.i + '" class="' + (hl && hl.allow.includes(r.i) ? 'hl' : hl && hl.ping.includes(r.i) ? 'hlp' : '') + '"><td class="mute">' + (r.i + 1) + '</td><td class="rc">' + esc(r.comment) + '</td><td>' + chips(r.src) + '</td><td>' + chips(r.dst, 1) +
+    (Object.keys(r.extra || {}).length ? '<div class="meta">+ ' + esc(JSON.stringify(r.extra)) + '</div>' : '') + '</td><td style="white-space:nowrap"><button class="eb" data-a="edit" type="button">✎ 수정</button> <button class="eb" data-a="up" type="button" title="위로">↑</button><button class="eb" data-a="down" type="button" title="아래로">↓</button> <button class="eb del" data-a="del" type="button">삭제</button></td></tr>').join('')
+    || '<tr><td colspan="5" class="mute">규칙 없음 — 모든 연결이 막힙니다</td></tr>';
+  const H = MODEL.hosts || {}, names = new Set(NODES.map(n => n.name));
+  $('nodes').innerHTML = NODES.map(n => { const v = H[n.name], want = n.ip + '/32';
+    const st = v === want ? '<span class="ok">등록됨</span>' : v ? '<span class="amb">주소 다름 → 자동 수정 예정</span>' : '<span class="amb">없음 → 자동 등록 예정</span>';
+    return '<tr><td><span class="c">' + esc(n.name) + '</span></td><td>' + esc(n.ip) + '</td><td class="mute">' + esc(v || '-') + '</td><td>' + st + '</td><td><span class="c">' + esc(n.user) + '@</span>' +
+      (n.tags || []).map(t => ' <span class="c">' + esc(t) + '</span>').join('') + '</td><td class="' + (n.online ? 'ok' : 'mute') + '">' + (n.online ? '온라인' : '꺼짐') + '</td></tr>'; }).join('') || '<tr><td colspan="6" class="mute">노드 없음</td></tr>';
+  $('hosts').innerHTML = Object.entries(H).filter(([k]) => !names.has(k)).map(([k, v]) => '<tr><td><span class="c">' + esc(k) + '</span></td><td>' + esc(v) + '</td><td class="mute">' +
+    (NODES.some(n => n.ip + '/32' === v) ? '노드 ' + esc(NODES.find(n => n.ip + '/32' === v).name) + ' 와 같은 주소' : '이 주소의 VPN 노드 없음') + '</td></tr>').join('') || '<tr><td class="mute">없음</td></tr>';
+}
+async function load(){
+  $('loadErr').textContent = ''; $('meta').textContent = '읽는 중…';
+  try {
+    const j = await api({op: 'load'});
+    LIVE = j.live; NODES = j.nodes || [];
+    $('meta').textContent = 'sha ' + LIVE.sha.slice(0, 12) + ' · 수정 ' + LIVE.mtime + ' · headscale ' + LIVE.headscale + ' · ' + (LIVE.content.length) + '자';
+    $('nodeList').innerHTML = NODES.map(n => '<option value="' + esc(n.name) + '">' + esc(n.ip + ' · ' + n.user + (n.online ? '' : ' (꺼짐)')) + '</option>').join('');
+    const sy = LIVE.sync || {}; $('syncEvery').textContent = (sy.every || 60) / 60 + '분';
+    $('syncState').innerHTML = sy.error ? '<div class="res no">자동 동기화 실패 (같은 내용은 다시 시도 안 함): ' + esc(sy.error) + '</div>'
+      : (sy.pending || []).length ? '<div class="res no" style="background:#422006;border-color:#a16207;color:#fde68a">맞출 것 ' + sy.pending.length + '건 — 1분 안에 자동 적용 (또는 지금 동기화): ' + esc(sy.pending.join(', ')) + '</div>'
+      : '<div class="res ok">VPN 목록의 모든 노드가 이름으로 등록돼 있음</div>';
+    $('hist').innerHTML = (j.versions || []).map(v => '<tr><td>' + v.id + '</td><td class="mute">' + esc(v.at) + '</td><td>' + esc(v.by) + '</td><td>' + esc(v.note) + '</td><td class="mute">' + esc(v.sha.slice(0, 10)) + (v.sha === LIVE.sha ? ' <span class="ok">(지금)</span>' : '') + '</td><td><button class="eb" data-ver="' + v.id + '" type="button">초안으로 불러오기</button></td></tr>').join('') || '<tr><td colspan="6" class="mute">아직 웹 적용 기록 없음 (처음 적용할 때 원본이 #1 로 저장됨)</td></tr>';
+    let keep = ''; try { keep = sessionStorage.getItem('acl-draft-base') === LIVE.sha ? (sessionStorage.getItem('acl-draft') || '') : ''; } catch (e) {}
+    if (keep && keep !== LIVE.content) { const m = await api({op: 'model', content: keep}); setDraft(keep, m.model); toast('적용하지 않은 초안을 이어서 엽니다', true); }
+    else setDraft(LIVE.content, j.model);
+  } catch (e) { $('loadErr').textContent = e.message; $('meta').textContent = '읽기 실패'; }
+}
+function saveLocal(){ try { if (LIVE && DRAFT !== LIVE.content) { sessionStorage.setItem('acl-draft', DRAFT); sessionStorage.setItem('acl-draft-base', LIVE.sha); } else { sessionStorage.removeItem('acl-draft'); } } catch (e) {} }
+async function doEdit(body){ const j = await api({op: 'edit', content: DRAFT, ...body}); setDraft(j.content, j.model); saveLocal(); }
+// 탭
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  document.querySelectorAll('.pane').forEach(p => p.hidden = p.id !== 'p-' + t.dataset.tab); });
+// 원문 편집
+let rawT = 0; $('raw').addEventListener('input', () => { DRAFT = $('raw').value; saveLocal(); clearTimeout(rawT);
+  rawT = setTimeout(async () => { try { const j = await api({op: 'model', content: DRAFT}); setDraft(DRAFT, j.model); } catch (e) { toast(e.message); } }, 500); });
+// 규칙 줄 버튼
+$('rules').addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]'); if (!b) return; const i = +b.closest('tr').dataset.i, r = MODEL.rules[i];
+  try {
+    if (b.dataset.a === 'edit') openRule(r);
+    else if (b.dataset.a === 'up' || b.dataset.a === 'down') await doEdit({kind: 'move', i, dir: b.dataset.a === 'up' ? -1 : 1});
+    else if (b.dataset.a === 'del') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = '한 번 더'; return; } await doEdit({kind: 'delete', i}); }
+  } catch (err) { toast(err.message); }
+});
+$('addRule').onclick = () => openRule(null);
+function openRule(r, pre){
+  EDIT = r ? {kind: 'update', i: r.i, extra: r.extra} : {kind: 'add', i: null, extra: {}};
+  const v = r || pre || {comment: '', src: [], dst: []};
+  $('mdT').textContent = r ? '규칙 ' + (r.i + 1) + ' 수정' : '규칙 추가'; $('fCm').value = v.comment || ''; $('fSrc').value = (v.src || []).join('\n'); $('fDst').value = (v.dst || []).join('\n');
+  $('mdE').textContent = ''; $('md').hidden = false; $('fSrc').focus();
+}
+$('mdC').onclick = () => { $('md').hidden = true; };
+$('md').addEventListener('click', e => { if (e.target === $('md')) $('md').hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('md').hidden = true; });
+$('mdS').onclick = async () => {
+  try { await doEdit({kind: EDIT.kind, i: EDIT.i, rule: {comment: $('fCm').value, src: $('fSrc').value, dst: $('fDst').value, extra: EDIT.extra}}); $('md').hidden = true; toast('초안에 넣었습니다 — 아래 미리보기 · 적용', true); }
+  catch (e) { $('mdE').textContent = e.message; }
+};
+// 경로 시험
+$('tGo').onclick = async () => {
+  $('tRes').innerHTML = '';
+  try {
+    const j = await api({op: 'test', content: DRAFT, src: $('tSrc').value, dst: $('tDst').value, port: $('tPort').value});
+    const who = esc(j.src.name + ' (' + j.src.ip + (j.src.user ? ', ' + j.src.user + '@' : '') + ') → ' + j.dst.name + ' (' + j.dst.ip + (j.dst.user ? ', ' + j.dst.user + '@' : '') + ') :' + j.port);
+    const ping = j.ping ? 'ping 은 됨 (이 도착으로 열린 포트가 하나라도 있음 — 규칙 ' + j.ping_rules.map(x => x + 1).join(', ') + ')' : 'ping 도 안 됨 (열린 포트 없음)';
+    $('tRes').innerHTML = j.allowed ? '<div class="res ok">허용 — ' + who + '<br>규칙 ' + j.rules.map(x => x + 1).join(', ') + ' 에 해당 (초록 줄)</div>'
+      : '<div class="res no">막힘 — ' + who + '<br>' + ping + '. 패킷은 거절 응답 없이 버려져 접속이 멈춘 뒤 시간 초과<br><button class="btn" id="sugg" type="button" style="margin-top:6px">이 경로 허용 규칙을 초안에 추가</button></div>';
+    render({allow: j.rules, ping: j.ping_rules});
+    if ($('sugg')) $('sugg').onclick = () => openRule(null, j.suggest);
+  } catch (e) { $('tRes').innerHTML = '<div class="res no">' + esc(e.message) + '</div>'; }
+};
+// 기록 → 초안
+$('hist').addEventListener('click', async e => { const b = e.target.closest('[data-ver]'); if (!b) return;
+  try { const v = await api({op: 'version', id: +b.dataset.ver}); const m = await api({op: 'model', content: v.content}); setDraft(v.content, m.model); saveLocal(); toast('#' + v.id + ' 을 초안으로 — 미리보기에서 비교 후 적용', true); } catch (err) { toast(err.message); } });
+// 미리보기 · 적용
+$('pv').onclick = async () => {
+  $('pvBox').hidden = false; $('pvCheck').innerHTML = '<div class="meta">검사 중…</div>'; $('pvDiff').textContent = ''; $('apErr').textContent = '';
+  $('apply').disabled = true; delete $('apply').dataset.sure; $('apply').textContent = '적용';
+  try {
+    PV = await api({op: 'preview', content: DRAFT});
+    $('pvDiff').innerHTML = PV.diff.map(l => '<div class="' + (l.startsWith('+') && !l.startsWith('+++') ? 'a' : l.startsWith('-') && !l.startsWith('---') ? 'd' : l.startsWith('@@') ? 'h' : '') + '">' + esc(l) + '</div>').join('') || '<div class="meta">차이 없음</div>';
+    $('pvCheck').innerHTML = PV.check.ok ? '<div class="res ok">형식 · headscale policy check 통과</div>' : '<div class="res no">검사 실패 — 적용할 수 없음<br>' + esc(PV.check.error) + '</div>';
+    $('apply').disabled = !PV.check.ok || PV.live_sha !== LIVE.sha;
+    if (PV.live_sha !== LIVE.sha) $('apErr').textContent = '그 사이 다른 사람이 규칙을 바꿨습니다 — 새로 읽기 후 다시';
+    try { $('pvBox').scrollIntoView({behavior: 'smooth', block: 'start'}); } catch (e) {}
+  } catch (e) { $('pvCheck').innerHTML = '<div class="res no">' + esc(e.message) + '</div>'; }
+};
+$('pvClose').onclick = () => { $('pvBox').hidden = true; };
+$('apply').onclick = async () => {
+  const b = $('apply'); if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = '한 번 더 누르면 실제 VPN 에 적용'; return; }
+  b.disabled = true; b.textContent = '적용 중… (검사 · 다시 읽기 · 확인)';
+  try { const j = await api({op: 'apply', content: DRAFT, base_sha: LIVE.sha, note: $('note').value});
+    try { sessionStorage.removeItem('acl-draft'); } catch (e) {}
+    toast(j.changed ? '적용됨 — 기록 #' + j.version : '바뀐 것 없음', true); $('note').value = ''; $('pvBox').hidden = true; await load(); }
+  catch (e) { $('apErr').textContent = e.message; b.disabled = false; b.textContent = '적용'; delete b.dataset.sure; }
+};
+$('discard').onclick = () => { if (!LIVE) return; try { sessionStorage.removeItem('acl-draft'); } catch (e) {} api({op: 'model', content: LIVE.content}).then(j => setDraft(LIVE.content, j.model)); };
+$('reload').onclick = load;
+$('syncNow').onclick = async () => { const b = $('syncNow'); b.disabled = true; b.textContent = '동기화 중…';
+  try { const j = await api({op: 'sync'}); toast(j.changed ? '등록 · 수정 ' + j.changes.length + '건 적용 (기록 #' + j.version + ')' : '맞출 것 없음', true); await load(); }
+  catch (e) { toast(e.message); } finally { b.disabled = false; b.textContent = '지금 동기화'; } };
+window.addEventListener('beforeunload', saveLocal);
+load();
+</script></body></html>

@@ -1,0 +1,12 @@
+[Unit]
+Description=hospital-common entry agent (root, unix socket only)
+After=network-online.target nginx.service
+
+[Service]
+WorkingDirectory=/opt/hospital-common
+Environment=ENTRY_CONF=/etc/hospital-common/entry.json
+ExecStart=/usr/bin/python3 -m services.entry serve
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+[Unit]
+Description=hospital-common front (public first page)
+After=entry.service
+
+[Service]
+User=front
+Group=front
+WorkingDirectory=/opt/hospital-common
+Environment=FRONT_CONF=/etc/hospital-common/front.json
+ExecStart=/usr/bin/python3 -m services.front
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/hospital-common /var/log/hospital-common
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

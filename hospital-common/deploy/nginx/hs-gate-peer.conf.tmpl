@@ -1,0 +1,20 @@
+# Headscale 게이트 — 이 서버 Headscale 이 꺼져 있으면 다른 게이트(@PEER_NAME@ @PEER_IP@)로 넘긴다 (WireGuard 경유)
+#   S1 · S2 어느 게이트로 들어와도 지금 주 서버의 Headscale 에 닿는다 — 주 서버 전환에 DNS 를 바꾸지 않아도 됨
+#   넘긴 요청에는 X-Duck-Gate 를 붙이고, 그 머리글이 있는 요청은 다시 넘기지 않는다 (둘 다 꺼졌을 때 무한 반복 방지)
+location @hs_peer {
+    if ($http_x_duck_gate) { return 502; }
+    proxy_pass https://@PEER_IP@:63728;
+    proxy_ssl_server_name on;
+    proxy_ssl_name vpn.example.org;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $hs_connection_upgrade;
+    proxy_set_header Host vpn.example.org;
+    proxy_set_header X-Duck-Gate @SELF@;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+    proxy_connect_timeout 5s;
+}

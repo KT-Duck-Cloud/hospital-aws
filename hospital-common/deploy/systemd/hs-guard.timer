@@ -1,0 +1,9 @@
+[Unit]
+Description=두 주 서버 방지 (보조 S1)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,8 @@
+{
+  "vms": {
+    "t3-vm1": { "role": "control-plane · MySQL", "protected": true },
+    "t3-vm2": { "role": "worker" }
+  },
+  "limits": { "cpus_min": 2, "cpus_max": 8, "mem_mb_min": 2048, "mem_mb_max": 12288, "disk_gb_max": 120,
+              "host_mem_reserve_mb": 4096, "host_disk_reserve_gb": 15 }
+}

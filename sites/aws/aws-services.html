@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuckCloud · AWS 연계 서비스 · 적용 기술 · 과금</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@300;400;600;700;800&display=swap');
+    body { font-family: 'Pretendard', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    @media print { header, .no-print { display: none !important; } body { background: #fff; color: #000; } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen"><a href="#" aria-hidden="true" rel="nofollow noopener" style="display: none !important; visibility: hidden !important"></a>
+  <script>try{if(window.top!==window.self)document.documentElement.classList.add('embedded')}catch(e){document.documentElement.classList.add('embedded')}</script>
+  <style>html.embedded body>header,html.embedded .embed-hide{display:none!important}</style>
+  <header class="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-50 no-print">
+    <div class="w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
+      <a href="/aws/" class="flex items-center gap-2"><span class="text-2xl">🦆</span>
+        <span class="text-sm font-bold bg-gradient-to-r from-amber-400 to-orange-300 bg-clip-text text-transparent">DuckCloud 관제</span></a>
+      <nav class="flex flex-wrap gap-1"><a href="/aws/" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">AWS 개요 (AWS t8-vm)</a><a href="/aws/#billingPanel" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">기능별 과금 ON/OFF 제어</a><a href="/aws/aws-services" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-amber-500 text-slate-950 font-bold">AWS 연계 서비스·기술</a><a href="/aws/#migrationEstimateSection" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">전면 전환 예상 견적</a><a href="/aws/billing-history" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">과금 명세</a><a href="/aws/aws-connection" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:bg-slate-800">AWS 연결 구조</a></nav>
+    </div>
+  </header>
+
+  <main class="w-full px-3 sm:px-4 lg:px-5 py-4 space-y-4">
+    <section class="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+      <div>
+        <h1 class="embed-hide text-xl font-bold text-white flex items-center gap-2"><i class="fa-brands fa-aws text-amber-400"></i> AWS — 기능별 설정 · 확인</h1>
+        <p class="embed-hide text-xs text-slate-400 mt-1">온프레미스(t3 · t5)가 모두 멈추면 이어받는 AWS 의 <b class="text-slate-200">기능별 설정 · 확인 방법 · 지금 상태</b>. 설명 원본 <code class="text-cyan-300">dashboard/aws_catalog.json</code> (고치면 바로 반영)</p>
+        <p class="text-[11px] text-slate-500 mt-1 font-mono" id="sDoc">-</p>
+        <p class="text-[11px] text-slate-500 mt-1 font-mono" id="sMeta">조회 중…</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="load(true)" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold"><i id="sIcon" class="fa-solid fa-arrows-rotate mr-1"></i> 다시 조회</button>
+        <button onclick="window.print()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs"><i class="fa-solid fa-print mr-1"></i> PDF로 저장</button>
+      </div>
+    </section>
+
+    <nav class="flex flex-wrap gap-1.5 text-[11px]">
+      <a href="#feat" class="embed-hide px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold">기능별 설정 · 확인</a>
+      <a href="/aws/#migrationEstimateSection" class="embed-hide px-2.5 py-1 rounded-lg bg-slate-900 border border-emerald-700 text-emerald-300">전환 예상 견적 →</a>
+      <span class="px-1 py-1 text-slate-500">부록 바로 가기</span>
+      <a href="#map" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500">① 온프레미스 → AWS 대응</a>
+      <a href="#tech" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500">② 적용 기술</a>
+      <a href="#svc" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500">③ 운영 서비스 · 과금</a>
+      <a href="#inv" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500">④ 실제 리소스 (스택)</a>
+      <a href="#hist" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500">⑤ 변경 이력</a>
+      <a href="#removed" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500">⑥ 정리한 서비스 · 접속 방식</a>
+    </nav>
+
+    <div id="sWarn" class="hidden rounded-lg border border-rose-800 bg-rose-950/60 p-3 text-xs text-rose-200"></div>
+
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4"><div class="text-[11px] text-slate-400">AWS 모드</div><div id="kMode" class="text-lg font-bold text-white mt-1">-</div><div id="kModeDesc" class="text-[10px] text-slate-500 mt-1">-</div></div>
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4"><div class="text-[11px] text-slate-400">지금 시간당</div><div id="kHour" class="text-2xl font-bold font-mono text-amber-300 mt-1">-</div><div id="kHourBoth" class="text-[10px] text-slate-500 mt-1">-</div></div>
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4"><div class="text-[11px] text-slate-400">꺼져도 나가는 고정비</div><div id="kFixed" class="text-2xl font-bold font-mono text-cyan-300 mt-1">-</div><div class="text-[10px] text-slate-500 mt-1">EBS · 스냅숏 (월)</div></div>
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4"><div class="text-[11px] text-slate-400">이대로 30일</div><div id="kMonth" class="text-2xl font-bold font-mono text-white mt-1">-</div><div id="kBudget" class="text-[10px] text-slate-500 mt-1">-</div></div>
+      <div class="bg-slate-900/90 border border-emerald-900/70 rounded-xl p-4"><div class="text-[11px] text-emerald-300">계정 플랜 · 남은 크레딧</div><div id="kCredit" class="text-2xl font-bold font-mono text-emerald-300 mt-1">-</div><div id="kPlan" class="text-[10px] text-slate-500 mt-1">-</div></div>
+    </section>
+
+    <section id="feat" class="bg-slate-900/90 border border-amber-900/60 rounded-xl p-4 space-y-3">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-2">
+        <div>
+          <h2 class="text-base font-bold text-white"><i class="fa-solid fa-layer-group text-amber-400 mr-1"></i> 기능별 설정 · 확인 — AWS Pilot Light</h2>
+          <p class="text-[11px] text-slate-400 mt-1">기능마다 <b class="text-slate-200">왜 필요한가 → 어떻게 설정했나(코드) → 어떻게 확인하나(명령)</b>. 초록 · 빨강 표시는 지금 AWS 를 읽기 전용으로 조회한 결과 (60초 캐시).</p>
+        </div>
+        <div id="fScore" class="text-xs text-slate-300 font-mono"></div>
+      </div>
+      <div id="fIssues" class="hidden rounded-lg border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-100 space-y-1"></div>
+      <div id="fBody" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4 min-[2400px]:grid-cols-5 gap-3"></div>
+    </section>
+
+    <section id="map" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
+      <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-diagram-project text-cyan-400 mr-1"></i> 온프레미스 → AWS 전환 대응 (DR 발동 시 온프레미스 전체가 AWS 두 대로)</h2>
+      <div id="sMap" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+      <div id="sFlow" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-2 text-[11px]"></div>
+    </section>
+
+    <section id="tech" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3">
+      <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-microchip text-cyan-400 mr-1"></i> 적용 기술 (<span id="tCount">-</span>개) — 무엇을 · 어떻게 · 어디에</h2>
+      <div id="tBody" class="grid grid-cols-1 lg:grid-cols-2 gap-3"></div>
+    </section>
+
+    <section id="svc" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-list-check text-amber-400 mr-1"></i> 운영 중인 AWS 서비스 (<span id="sCount">-</span>개)</h2>
+        <div class="flex flex-wrap gap-1.5 text-[10px]">
+          <span class="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">켜진 시간 과금</span>
+          <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-900">고정비(월)</span>
+          <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">무료</span>
+          <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">이전 구조 · 정리 대상</span>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/60 text-slate-400 text-[10px] border-b border-slate-800">
+            <tr><th class="py-2.5 px-2 w-[16%]">서비스 · 리소스</th><th class="py-2.5 px-2 w-[14%]">지금 상태</th><th class="py-2.5 px-2 w-[16%]">과금 방식</th>
+                <th class="py-2.5 px-2 text-right w-[7%]">지금</th><th class="py-2.5 px-2 w-[17%]">이 프로젝트에서 왜 쓰나</th><th class="py-2.5 px-2 w-[22%]">프로그램 설정 (파일 → 쓰임)</th><th class="py-2.5 px-2 w-[8%]">제어</th></tr>
+          </thead>
+          <tbody id="sBody" class="divide-y divide-slate-800/60"><tr><td colspan="7" class="py-4 px-2 text-slate-500">조회 중…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="inv" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-cubes text-amber-400 mr-1"></i> 실제 AWS 리소스 — CloudFormation 스택 (자동)</h2>
+        <span id="invSum" class="text-[11px] text-slate-400"></span>
+      </div>
+      <div id="invBody" class="space-y-3 text-xs"></div>
+    </section>
+
+    <section id="hist" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-clock-rotate-left text-cyan-400 mr-1"></i> 변경 이력 — AWS 연계 코드 (git, 자동)</h2>
+        <span id="histSum" class="text-[11px] text-slate-400 font-mono"></span>
+      </div>
+      <div id="histPending" class="hidden rounded-lg border border-amber-800 bg-amber-950/40 p-3 text-[11px] text-amber-200"></div>
+      <div id="histBody" class="space-y-1.5 text-xs"></div>
+    </section>
+
+    <section id="removed" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+        <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-ban text-rose-400 mr-1"></i> 쓰지 않는 · 정리한 서비스</h2>
+        <div id="sRemoved" class="space-y-1.5 text-xs"></div>
+      </div>
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+        <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-route text-cyan-400 mr-1"></i> 대시보드 3개가 AWS 를 쓰는 방식</h2>
+        <div class="text-xs text-slate-300 space-y-1.5 leading-relaxed">
+          <p>• <b class="text-amber-300">공통 정의</b> <code class="text-[11px] text-cyan-300">dashboard/aws_site.py</code> — CloudFormation <code>duckcloud-compute</code> 출력에서 vm1 · vm2 ID 를 읽고, ctl 메쉬 이름표(<code>hs.example.org/join/names.json</code>)로 지금 AWS 가 운영 중인지 확인</p>
+          <p>• <b class="text-amber-300">AWS CLI</b> 프로필 <code id="sProfile">aws-agent</code> · 리전 <code id="sRegion">ap-southeast-2</code> — Mac 의 <code>aws login</code> 세션으로 호출 (키를 파일에 두지 않음)</p>
+          <p>• <b class="text-white">5050</b> 통합 관제: 노드 카드 · 전원 ON/OFF(2대 함께) · vm2 MySQL 가동/정지(SSM)</p>
+          <p>• <b class="text-white">5051</b> AWS 관리 대시보드: 기능별 과금 ON/OFF · 시연 모드(2대) · 전체 절전(AWS 가 운영 중이면 거부) · 과금 명세 · 이 페이지</p>
+          <p>• <b class="text-white">5052</b> VM 터미널: AWS 노드는 SSH 대신 <b>SSM Run Command</b> 로 명령 실행 (보안 그룹에 22 없음)</p>
+          <p>• 판정 · 승격 · 복귀는 대시보드가 하지 않음 — <b>ctl duck-hsagent</b> (mesh.py · provision.py)</p>
+        </div>
+        <div id="sOutside" class="text-[11px] text-slate-500 pt-2 border-t border-slate-800"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="mBack" class="hidden fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm overflow-y-auto" onclick="if(event.target===this)closeModal()">
+    <div class="max-w-5xl mx-auto my-6 px-3 sm:px-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl">
+        <div class="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 py-4 border-b border-slate-800 bg-slate-900/95 rounded-t-2xl">
+          <div id="mHead" class="min-w-0"></div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="copyLink()" class="px-2.5 py-1 rounded-lg text-[11px] bg-slate-800 border border-slate-700 text-slate-300 hover:text-white" title="이 설명 링크 복사">링크</button>
+            <button onclick="closeModal()" class="px-2.5 py-1 rounded-lg text-[11px] bg-slate-800 border border-slate-700 text-slate-300 hover:text-white">닫기 ✕</button>
+          </div>
+        </div>
+        <div id="mBody" class="px-5 py-4 space-y-5 text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const usd = (v, d = 2) => '$' + Number(v || 0).toFixed(d);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    function nodeCard(n) {
+      const on = n.state === 'running';
+      return '<div class="rounded-xl border ' + (on ? 'border-emerald-800 bg-emerald-950/10' : 'border-slate-800 bg-slate-950/50') + ' p-4 space-y-2">'
+        + '<div class="flex items-center justify-between"><div class="text-sm font-bold text-white">' + esc(n.mirrors.site) + ' ' + esc(n.mirrors.host)
+        + ' <span class="text-slate-500 font-mono text-[11px]">' + esc(n.mirrors.vpn) + '</span> <i class="fa-solid fa-arrow-right text-amber-400 mx-1"></i> '
+        + '<span class="text-amber-300">' + esc(n.label) + '</span> <span class="text-slate-500 font-mono text-[11px]">' + esc(n.host) + ' ' + esc(n.vpn) + '</span></div>'
+        + '<span class="px-2 py-0.5 rounded text-[10px] font-mono border ' + (on ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700') + '">' + esc(n.state) + '</span></div>'
+        + '<div class="text-[11px] text-slate-400">온프레미스 역할: ' + esc(n.mirrors.role) + ' → AWS: ' + esc(n.role) + '</div>'
+        + '<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] font-mono">'
+        + '<div class="bg-slate-950 rounded p-2"><div class="text-slate-500">인스턴스</div><div class="text-slate-200">' + esc(n.instance_id) + '</div></div>'
+        + '<div class="bg-slate-950 rounded p-2"><div class="text-slate-500">' + esc(n.type) + ' · EBS</div><div class="text-slate-200">' + esc(n.disk_gb) + 'GB gp3</div></div>'
+        + '<div class="bg-slate-950 rounded p-2"><div class="text-slate-500">VPC 사설 / 공인</div><div class="text-cyan-300">' + esc(n.private_ip) + ' / ' + esc(n.public_ip) + '</div></div>'
+        + '<div class="bg-slate-950 rounded p-2"><div class="text-slate-500">SSM · 메쉬 이름</div><div class="' + (n.ssm === 'Online' ? 'text-emerald-300' : 'text-slate-400') + '">' + esc(n.ssm) + ' · ' + esc(n.dns) + '</div></div>'
+        + '</div><div class="text-[10px] text-slate-500">' + n.services.map(esc).join(' · ') + '</div></div>';
+    }
+
+    const mark = (c) => !c ? '<span class="text-slate-500">–</span>' : c.ok === true ? '<span class="text-emerald-400">✓</span>' : c.ok === false ? '<span class="text-rose-400">✗</span>' : '<span class="text-slate-400">·</span>';
+    let FEAT = {};
+    function renderFeatures(d) {
+      const C = d.checks || {}, F = d.features || [];
+      FEAT = Object.fromEntries(F.map(f => [f.id, f]));
+      const fails = Object.entries(C).filter(([k, c]) => c.ok === false);
+      const passes = Object.values(C).filter(c => c.ok === true).length;
+      document.getElementById('fScore').innerText = '확인 ' + passes + ' 통과 · ' + fails.length + ' 문제 · ' + (Object.keys(C).length - passes - fails.length) + ' 정보';
+      const box = document.getElementById('fIssues');
+      box.classList.toggle('hidden', !fails.length);
+      box.innerHTML = '<b class="text-rose-300">지금 설정과 다른 곳 ' + fails.length + '건</b>' + fails.map(([k, c]) =>
+        '<div>✗ <b>' + esc(k) + '</b> — ' + esc(c.value) + (c.detail ? ' <span class="text-rose-300/80">· ' + esc(c.detail) + '</span>' : '') + '</div>').join('');
+      document.getElementById('fBody').innerHTML = F.map(f => {
+        const ck = (f.checks || []).map(k => '<div class="flex gap-1.5 items-start">' + mark(C[k]) + '<span><span class="text-slate-400">' + esc(k) + '</span> ' + esc((C[k] || {}).value || '조회 전') + '</span></div>').join('');
+        const bad = (f.checks || []).some(k => (C[k] || {}).ok === false);
+        return '<article class="rounded-xl border ' + (bad ? 'border-rose-800/70' : 'border-slate-800') + ' bg-slate-950/50 p-4 space-y-2 flex flex-col">'
+          + '<div class="flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center">' + f.no + '</span>'
+          + '<i class="fa-solid ' + esc(f.icon) + ' text-cyan-400"></i><b class="text-white text-sm">' + esc(f.title) + '</b>'
+          + (f.shared ? '<span class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">' + esc(f.shared) + '</span>' : '') + '</div>'
+          + '<p class="text-[13px] text-amber-200 italic">"' + esc(f.pitch) + '"</p>'
+          + '<p class="text-[11px] text-slate-400 leading-relaxed">' + esc(f.why) + '</p>'
+          + '<div class="flex flex-wrap gap-1">' + f.aws.map(a => '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">' + esc(a) + '</span>').join('') + '</div>'
+          + (ck ? '<div class="text-[11px] font-mono space-y-0.5 pt-1 border-t border-slate-800">' + ck + '</div>' : '<div class="text-[11px] text-slate-500 pt-1 border-t border-slate-800">자동 확인 없음 — 아래 명령으로 확인</div>')
+          + '<div class="flex items-center gap-2 pt-1 mt-auto"><span class="text-[10px] text-emerald-300/80">' + esc(f.eval) + '</span>'
+          + '<button onclick="openFeat(\'' + f.id + '\')" class="ml-auto px-2.5 py-1 rounded-lg text-[11px] bg-slate-800 border border-slate-700 text-slate-200 hover:border-amber-500">설정 · 확인 보기</button></div>'
+          + '</article>';
+      }).join('');
+      if (document.getElementById('cBody')) document.getElementById('cBody').innerHTML = (d.checklist || []).map((c, i) => {
+        const k = C[c.check];
+        return '<tr><td class="py-2 px-2 text-slate-500">' + (i + 1) + '</td><td class="py-2 px-2 font-bold text-white">' + esc(c.step) + '</td>'
+          + '<td class="py-2 px-2 font-mono text-[11px] text-cyan-300">' + esc(c.do) + '</td><td class="py-2 px-2">' + esc(c.expect) + '</td>'
+          + '<td class="py-2 px-2 text-[11px]">' + (c.check ? mark(k) + ' ' + esc((k || {}).value || '') : '<span class="text-slate-500">직접 확인</span>') + '</td></tr>';
+      }).join('');
+    }
+    function openFeat(id) {
+      const f = FEAT[id]; if (!f) return;
+      const C = (window.__last || {}).checks || {};
+      const rows = (a) => a.map(([x, y]) => '<tr><td class="py-1.5 pr-3 align-top font-mono text-[11px] text-cyan-300 whitespace-nowrap">' + esc(x) + '</td><td class="py-1.5 text-slate-300 text-xs">' + esc(y) + '</td></tr>').join('');
+      const cmds = f.verify.map(([c, e]) => '<div class="rounded-lg border border-slate-800 bg-slate-950 p-2.5"><div class="flex items-start gap-2"><code class="flex-1 text-[11px] text-emerald-300 break-all">' + esc(c) + '</code>'
+        + '<button onclick="copyText(this)" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">복사</button></div><div class="text-[11px] text-slate-400 mt-1">기대: ' + esc(e) + '</div></div>').join('');
+      const ck = (f.checks || []).map(k => '<li>' + mark(C[k]) + ' <b>' + esc(k) + '</b> ' + esc((C[k] || {}).value || '') + (C[k] && C[k].detail ? ' <span class="text-slate-500">— ' + esc(C[k].detail) + '</span>' : '') + '</li>').join('');
+      showModal('<div class="text-[11px] text-amber-400">기능 ' + f.no + ' · ' + esc(f.eval) + '</div><div class="text-lg font-bold text-white">' + esc(f.title) + '</div>',
+        '<p class="text-amber-200 italic">"' + esc(f.pitch) + '"</p><p class="text-slate-300 text-sm">' + esc(f.why) + '</p>'
+        + (f.caveat ? '<div class="rounded-lg border border-amber-800 bg-amber-950/40 p-2.5 text-xs text-amber-100"><b>솔직하게</b> — ' + esc(f.caveat) + '</div>' : '')
+        + '<div><div class="text-xs font-bold text-white mb-1">어떻게 설정했나</div><table class="w-full">' + rows(f.setup) + '</table></div>'
+        + '<div><div class="text-xs font-bold text-white mb-1">어떻게 확인하나</div><div class="space-y-2">' + cmds + '</div></div>'
+        + (ck ? '<div><div class="text-xs font-bold text-white mb-1">지금 상태 (자동 조회)</div><ul class="text-xs space-y-1 font-mono">' + ck + '</ul></div>' : ''),
+        'feat=' + f.id);
+    }
+    function render(d) {
+      window.__last = d;
+      renderFeatures(d);
+      const ok = !d.session || d.session.ok !== false;
+      const w = document.getElementById('sWarn');
+      w.classList.toggle('hidden', ok);
+      if (!ok) w.innerHTML = '<b>AWS 로그인 세션 만료</b> — 터미널에서 <code class="text-amber-300">aws login --profile ' + esc(d.profile) + '</code> 후 다시 조회';
+      const s = d.summary, t = d.totals, m = s.mesh || {};
+      document.getElementById('sMeta').innerText = d.timestamp + ' · ' + d.region + ' · 프로필 ' + d.profile + ' · 노드 정의 출처: ' + s.source
+        + ' · 메쉬 ' + (m.ok ? ('운영 기본(home)=' + (m.primary_member_label || m.primary_member || '?') + ', AWS 역할=' + ((m.aws_roles || []).join(',') || '없음')) : '읽기 실패');
+      document.getElementById('sProfile').innerText = d.profile;
+      document.getElementById('sRegion').innerText = d.region;
+      document.getElementById('kMode').innerText = s.mode;
+      document.getElementById('kMode').className = 'text-lg font-bold mt-1 ' + (m.aws_is_primary ? 'text-rose-300' : (s.running ? 'text-emerald-300' : 'text-slate-300'));
+      document.getElementById('kModeDesc').innerText = s.mode_desc;
+      document.getElementById('kHour').innerText = usd(t.hourly_now, 3) + '/h';
+      document.getElementById('kHourBoth').innerText = '두 대 켜면 ' + usd(t.on_hour_both, 3) + '/h (IPv4 포함)';
+      document.getElementById('kFixed').innerText = usd(t.fixed_month);
+      document.getElementById('kMonth').innerText = usd(t.month_projection);
+      document.getElementById('kBudget').innerText = ((d.checks || {}).budgets || {}).ok === false ? 'AWS Budgets 없음 — spend limit 확인' : '예산 한도 ' + usd(t.budget_limit, 0) + ' (AWS Budgets)';
+      document.getElementById('kCredit').innerText = d.plan.credits != null ? usd(d.plan.credits) : '-';
+      document.getElementById('kPlan').innerText = d.plan.type + ' 플랜' + (d.plan.expires ? ' · 만료 ' + d.plan.expires : '') + ' — 청구액은 크레딧에서 차감';
+
+      document.getElementById('sMap').innerHTML = s.nodes.map(nodeCard).join('');
+      document.getElementById('sFlow').innerHTML = s.flow.map((f, i) => '<div class="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5"><div class="font-bold text-amber-300 mb-1">' + (i + 1) + '. ' + esc(f[0]) + '</div><div class="text-slate-400 leading-snug">' + esc(f[1]) + '</div></div>').join('');
+
+      document.getElementById('sCount').innerText = d.catalog.length;
+      document.getElementById('sBody').innerHTML = d.catalog.map(c => {
+        const L = d.live[c.id] || {};
+        const legacy = c.group === '이전 구조';
+        const tag = legacy ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-400 border border-slate-700">이전 구조</span>'
+          : L.free ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">무료</span>'
+          : (L.month != null) ? '<span class="px-1.5 py-0.5 rounded text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-900">고정비</span>'
+          : '<span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-800">시간 과금</span>';
+        const now = L.free ? '<span class="text-emerald-400">$0</span>'
+          : (L.month != null) ? '<span class="text-cyan-300">' + (L.month > 0 && L.month < 0.01 ? '&lt;$0.01' : usd(L.month)) + '/월</span>'
+          : (L.now != null) ? '<span class="' + (L.now > 0 ? 'text-amber-300' : 'text-slate-500') + '">' + usd(L.now, 4) + '/h</span>' : '<span class="text-slate-500">-</span>';
+        return '<tr class="align-top hover:bg-slate-800/30 ' + (legacy ? 'opacity-70' : '') + '">'
+          + '<td class="py-2.5 px-2"><button onclick="openSvc(&quot;' + esc(c.id) + '&quot;)" class="text-left flex items-center gap-1.5 font-semibold text-slate-100 hover:text-amber-300"><i class="fa-solid ' + c.icon + ' text-amber-400 w-4"></i>' + esc(c.service) + ' <span class="text-[10px] text-amber-400/80">자세히</span></button>'
+          + '<div class="text-[10px] text-slate-500 mt-0.5">' + esc(c.group) + ' ' + tag + '</div><div class="text-[10px] text-slate-400 mt-1 font-mono">' + esc(c.resource) + '</div></td>'
+          + '<td class="py-2.5 px-2 text-[11px] font-mono text-slate-300">' + esc(L.state || '-') + '</td>'
+          + '<td class="py-2.5 px-2 text-[11px] text-slate-300">' + esc(c.billing) + '</td>'
+          + '<td class="py-2.5 px-2 text-right font-mono text-[11px]">' + now + '</td>'
+          + '<td class="py-2.5 px-2 text-[11px] text-slate-300 leading-snug">' + esc(c.why) + '</td>'
+          + '<td class="py-2.5 px-2 text-[11px] space-y-1">' + c.config.map(x => '<div><code class="text-cyan-300">' + esc(x[0]) + '</code><div class="text-slate-400">' + esc(x[1]) + '</div></div>').join('') + '</td>'
+          + '<td class="py-2.5 px-2 text-[11px] text-slate-400">' + esc(c.control) + '</td></tr>';
+      }).join('');
+
+      const cm = d.catalog_meta || {}, hi = d.history || {}, last = (hi.commits || [])[0];
+      document.getElementById('sDoc').innerText = '설명 원본 ' + (cm.file || '') + ' · 수정 ' + (cm.mtime || '-') + (cm.error ? ' · 읽기 오류 ' + cm.error : '')
+        + (last ? ' · 최근 코드 변경 ' + last.date + ' ' + last.hash : '') + (hi.pending && hi.pending.length ? ' · 커밋 안 된 변경 ' + hi.pending.length + '건' : '');
+
+      const svcName = {}; (d.catalog || []).forEach(c => svcName[c.id] = c.service);
+      document.getElementById('tCount').innerText = (d.tech || []).length;
+      window.__d = d;
+      document.getElementById('tBody').innerHTML = (d.tech || []).map(t => '<div onclick="openTech(&quot;' + esc(t.id) + '&quot;)" class="cursor-pointer rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 space-y-1.5 hover:border-amber-500/70 hover:bg-slate-900 transition">'
+        + '<div class="flex items-center justify-between gap-2"><div><span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-900 mr-1.5">' + esc(t.area) + '</span>'
+        + '<b class="text-slate-100 text-[13px]">' + esc(t.tech) + '</b></div>'
+        + '<div class="flex flex-wrap gap-1 justify-end">' + (t.aws || []).map(a => '<a href="#svc" class="text-[9px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-900">' + esc(svcName[a] || a) + '</a>').join('') + '</div></div>'
+        + '<div class="text-[11px] text-slate-300 leading-relaxed">' + esc(t.how) + '</div>'
+        + '<div class="flex items-center justify-between gap-2"><div class="text-[10px] font-mono text-slate-500">' + (t.where || []).map(esc).join(' · ') + '</div>'
+        + (t.detail ? '<span class="shrink-0 text-[10px] text-amber-300">왜 · 대안 · 실제 코드 →</span>' : '') + '</div></div>').join('');
+
+      const inv = d.inventory || {}, rm = d.resource_map || {};
+      let total = 0, undoc = 0;
+      document.getElementById('invBody').innerHTML = !inv.ok ? '<div class="text-rose-300">스택 조회 실패 — ' + esc(inv.error) + '</div>' : (inv.stacks || []).map(st => {
+        const rows = st.resources.map(r => { total++; const sid = rm[r.type]; if (!sid) undoc++;
+          return '<tr class="border-b border-slate-800/60"><td class="py-1.5 px-2 font-mono text-slate-300">' + esc(r.logical) + '</td><td class="py-1.5 px-2 font-mono text-[10px] text-slate-400">' + esc(r.type) + '</td>'
+            + '<td class="py-1.5 px-2 font-mono text-[10px] text-slate-400 break-all">' + esc(r.physical) + '</td>'
+            + '<td class="py-1.5 px-2 text-[10px] ' + (/COMPLETE$/.test(r.status) ? 'text-emerald-400' : 'text-amber-300') + '">' + esc(r.status) + '</td>'
+            + '<td class="py-1.5 px-2">' + (sid ? '<a href="#svc" class="text-[10px] text-cyan-300">' + esc(svcName[sid] || sid) + '</a>' : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">설명 필요 — aws_catalog.json</span>') + '</td></tr>'; }).join('');
+        return '<div class="rounded-xl border border-slate-800 bg-slate-950/50"><div class="px-3 py-2 border-b border-slate-800 flex flex-wrap gap-2 items-center justify-between">'
+          + '<div><b class="text-amber-300 font-mono">' + esc(st.name) + '</b> <span class="text-[10px] text-slate-500">' + esc(st.description).slice(0, 120) + '</span></div>'
+          + '<div class="text-[10px] font-mono text-slate-400">' + esc(st.status) + ' · 최근 변경 ' + esc(st.updated) + ' · ' + st.resources.length + '개</div></div>'
+          + '<div class="overflow-x-auto"><table class="w-full text-left"><tbody>' + rows + '</tbody></table></div></div>'; }).join('');
+      document.getElementById('invSum').innerText = inv.ok ? ('스택 ' + (inv.stacks || []).length + '개 · 리소스 ' + total + '개' + (undoc ? ' · 설명 필요 ' + undoc + '개' : ' · 모두 설명됨')) : '';
+
+      document.getElementById('histSum').innerText = (hi.branch ? '브랜치 ' + hi.branch + ' · ' : '') + '최근 ' + (hi.commits || []).length + '건';
+      const hp = document.getElementById('histPending');
+      hp.classList.toggle('hidden', !(hi.pending && hi.pending.length));
+      if (hi.pending && hi.pending.length) hp.innerHTML = '<b>커밋 안 된 변경 ' + hi.pending.length + '건</b> (이 화면에는 이미 반영, 팀 공유는 커밋 · push 후): <span class="font-mono">' + hi.pending.map(esc).join(' · ') + '</span>';
+      document.getElementById('histBody').innerHTML = (hi.commits || []).map(c => '<details class="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2"><summary class="cursor-pointer flex flex-wrap gap-2 items-baseline">'
+        + '<span class="font-mono text-[10px] text-slate-500">' + esc(c.date) + '</span><span class="font-mono text-[10px] text-amber-300">' + esc(c.hash) + '</span>'
+        + '<span class="text-slate-200">' + esc(c.msg) + '</span><span class="text-[10px] text-slate-500">' + esc(c.author) + '</span></summary>'
+        + '<div class="mt-1.5 text-[10px] font-mono text-slate-400">' + c.files.map(esc).join(' · ') + (c.more ? ' 외 ' + c.more + '개' : '') + '</div></details>').join('') || '<div class="text-slate-500">이력 없음</div>';
+
+      document.getElementById('sRemoved').innerHTML = d.removed.map(r => '<div class="flex gap-2"><span class="text-rose-300 font-semibold min-w-[11rem]">' + esc(r[0]) + '</span><span class="text-slate-400">' + esc(r[1]) + '</span></div>').join('');
+      document.getElementById('sOutside').innerHTML = d.outside.length
+        ? '<b class="text-slate-400">프로젝트 외 EC2 (같은 계정 · 다른 실습):</b> ' + d.outside.map(esc).join(' / ')
+        : '같은 계정의 다른 실습 리소스(myvpc · jd-test-123 · wp-jd 등)는 이 표에 넣지 않았습니다 — 과금 표에서는 경고로 표시';
+    }
+
+    const ul = a => '<ul class="list-disc pl-5 space-y-1 text-[13px] text-slate-300">' + (a || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
+    const sec = (title, icon, html) => html ? '<section><h3 class="text-[13px] font-bold text-white mb-2"><i class="fa-solid ' + icon + ' text-amber-400 mr-1.5"></i>' + title + '</h3>' + html + '</section>' : '';
+    function showModal(head, body, hash) {
+      document.getElementById('mHead').innerHTML = head; document.getElementById('mBody').innerHTML = body;
+      document.getElementById('mBack').classList.remove('hidden'); document.body.style.overflow = 'hidden';
+      if (hash) history.replaceState(null, '', '#' + hash);
+    }
+    function closeModal() {
+      document.getElementById('mBack').classList.add('hidden'); document.body.style.overflow = '';
+      if (/^#(tech|svc)=/.test(location.hash)) history.replaceState(null, '', location.pathname);
+    }
+    function copyLink() { navigator.clipboard && navigator.clipboard.writeText(location.href); }
+    function copyText(btn) { const t = btn.parentElement.querySelector('code').innerText; navigator.clipboard && navigator.clipboard.writeText(t); btn.innerText = '복사됨'; setTimeout(() => btn.innerText = '복사', 1200); }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    window.addEventListener('hashchange', () => {
+      const m = location.hash.match(/^#(tech|svc)=([\w-]+)/);
+      if (m && window.__d) (m[1] === 'tech' ? openTech : openSvc)(m[2]);
+    });
+
+    function codeBlock(sn) {
+      const head = '<div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-slate-800 bg-slate-950">'
+        + '<div class="text-[11px]"><span class="font-mono text-cyan-300">' + esc(sn.file) + (sn.start ? ':' + sn.start + '–' + sn.end : '') + '</span>'
+        + (sn.note ? ' <span class="text-slate-400">— ' + esc(sn.note) + '</span>' : '') + '</div>'
+        + (sn.url ? '<a href="' + esc(sn.url) + '" target="_blank" rel="noopener" class="text-[10px] text-amber-300 hover:underline">GitHub 에서 보기 ↗</a>' : '') + '</div>';
+      if (sn.error) return '<div class="rounded-xl border border-rose-900 overflow-hidden">' + head + '<div class="px-3 py-2 text-[11px] text-rose-300">' + esc(sn.error) + '</div></div>';
+      const rows = sn.lines.map(l => '<tr><td class="select-none text-right pr-3 pl-3 text-slate-600 align-top">' + l[0] + '</td><td class="pr-3 whitespace-pre text-slate-200">' + (esc(l[1]) || ' ') + '</td></tr>').join('');
+      return '<div class="rounded-xl border border-slate-800 overflow-hidden">' + head + '<div class="overflow-x-auto bg-[#0b1020]"><table class="font-mono text-[11.5px] leading-[1.55] my-2"><tbody>' + rows + '</tbody></table></div></div>';
+    }
+
+    async function openTech(id) {
+      const d0 = (window.__d && (window.__d.tech || []).find(t => t.id === id)) || {};
+      showModal('<div class="text-sm text-slate-400">불러오는 중…</div>', '', 'tech=' + id);
+      let r;
+      try { r = await (await fetch('/api/aws/tech?id=' + encodeURIComponent(id))).json(); } catch (e) { r = { success: false, error: e.message }; }
+      if (!r.success) { document.getElementById('mBody').innerHTML = '<div class="text-rose-300">' + esc(r.error) + '</div>'; return; }
+      const t = r.tech, x = r.detail || {};
+      const head = '<div class="flex flex-wrap items-center gap-2"><span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-900">' + esc(t.area) + '</span>'
+        + '<h2 class="text-base sm:text-lg font-bold text-white">' + esc(t.tech) + '</h2></div>'
+        + '<div class="mt-1 flex flex-wrap gap-1">' + (r.services || []).map(s2 => '<button onclick="openSvc(&quot;' + esc(s2.id) + '&quot;)" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-900 hover:border-amber-500">' + esc(s2.name) + '</button>').join('') + '</div>';
+      const alts = (x.alternatives || []).length ? '<div class="overflow-x-auto rounded-xl border border-slate-800"><table class="w-full text-left text-[12.5px]"><thead class="bg-slate-950 text-[11px] text-slate-400"><tr><th class="py-2 px-3 w-[28%]">대안</th><th class="py-2 px-3">선택하지 않은 이유</th></tr></thead><tbody class="divide-y divide-slate-800">'
+        + x.alternatives.map(a => '<tr><td class="py-2 px-3 font-semibold text-slate-200 align-top">' + esc(a[0]) + '</td><td class="py-2 px-3 text-slate-300">' + esc(a[1]) + '</td></tr>').join('') + '</tbody></table></div>' : '';
+      const cmds = (x.commands || []).length ? '<div class="space-y-1.5">' + x.commands.map(c => '<div class="flex items-start gap-2 rounded-lg bg-[#0b1020] border border-slate-800 px-3 py-2"><code class="flex-1 font-mono text-[11.5px] text-emerald-300 whitespace-pre-wrap break-all">' + esc(c) + '</code><button onclick="copyText(this)" class="shrink-0 text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">복사</button></div>').join('') + '</div>' : '';
+      const body = sec('어떻게 적용했나', 'fa-gears', '<p class="text-[13px] text-slate-200 leading-relaxed">' + esc(t.how) + '</p>')
+        + sec('왜 이 기술을 썼나', 'fa-circle-question', x.why ? '<p class="text-[13px] text-slate-300 leading-relaxed">' + esc(x.why) + '</p>' : '')
+        + sec('이 프로젝트에 맞는 이유', 'fa-circle-check', (x.fit || []).length ? ul(x.fit) : '')
+        + sec('검토한 대안과 선택하지 않은 이유', 'fa-code-compare', alts)
+        + sec('실제 적용 코드 (저장소 파일에서 지금 읽음)', 'fa-file-code', (x.snippets || []).map(codeBlock).join('<div class="h-3"></div>'))
+        + sec('실행 · 확인 명령', 'fa-terminal', cmds)
+        + sec('검증 기준', 'fa-flag-checkered', x.verify ? '<p class="text-[13px] text-slate-300">' + esc(x.verify) + '</p>' : '')
+        + '<p class="text-[10px] text-slate-500 pt-2 border-t border-slate-800">설명 원본 dashboard/aws_catalog.json (tech · id=' + esc(t.id) + ') · 수정 ' + esc(r.catalog_mtime || '') + ' · 코드는 브랜치 ' + esc((r.repo || {}).branch || '') + ' 작업 폴더 기준 · 비밀값 모양은 ••• 로 가림</p>';
+      document.getElementById('mHead').innerHTML = head; document.getElementById('mBody').innerHTML = body;
+    }
+
+    function openSvc(id) {
+      const d = window.__d || {}, c = (d.catalog || []).find(x => x.id === id);
+      if (!c) return;
+      const L = (d.live || {})[id] || {}, techs = (d.tech || []).filter(t => (t.aws || []).includes(id));
+      const head = '<div class="flex items-center gap-2"><i class="fa-solid ' + esc(c.icon) + ' text-amber-400"></i><h2 class="text-lg font-bold text-white">' + esc(c.service) + '</h2>'
+        + '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">' + esc(c.group) + '</span></div>'
+        + '<div class="text-[11px] font-mono text-slate-400 mt-1">' + esc(c.resource) + '</div>';
+      const body = sec('지금 상태', 'fa-signal', '<p class="font-mono text-[12.5px] text-slate-200">' + esc(L.state || '-') + '</p>')
+        + sec('과금 방식', 'fa-coins', '<p class="text-[13px] text-slate-300">' + esc(c.billing) + '</p>')
+        + sec('이 프로젝트에서 왜 쓰나', 'fa-circle-question', '<p class="text-[13px] text-slate-300 leading-relaxed">' + esc(c.why) + '</p>')
+        + sec('프로그램 설정 (파일 → 쓰임)', 'fa-file-code', '<div class="space-y-1.5">' + (c.config || []).map(x => '<div><code class="text-cyan-300 text-[12px]">' + esc(x[0]) + '</code><div class="text-[12px] text-slate-400">' + esc(x[1]) + '</div></div>').join('') + '</div>')
+        + sec('대시보드에서 제어', 'fa-sliders', '<p class="text-[13px] text-slate-300">' + esc(c.control) + '</p>')
+        + sec('이 서비스를 쓰는 기술 — 눌러서 왜 · 대안 · 실제 코드', 'fa-microchip', techs.length ? '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + techs.map(t => '<button onclick="openTech(&quot;' + esc(t.id) + '&quot;)" class="text-left rounded-lg border border-slate-800 bg-slate-950/60 hover:border-amber-500 px-3 py-2"><span class="text-[10px] text-cyan-300">' + esc(t.area) + '</span><div class="text-[13px] font-semibold text-slate-100">' + esc(t.tech) + '</div></button>').join('') + '</div>' : '<p class="text-[12px] text-slate-500">연결된 기술 없음</p>');
+      showModal(head, body, 'svc=' + id);
+    }
+
+    async function load(force) {
+      const i = document.getElementById('sIcon'); i.classList.add('fa-spin');
+      try { render(await (await fetch('/api/aws/services' + (force ? '?force=1' : ''))).json()); }
+      catch (e) { document.getElementById('sMeta').innerText = '조회 실패: ' + e.message; }
+      finally { i.classList.remove('fa-spin'); }
+    }
+    load(false).then(() => {
+      const m = location.hash.match(/^#(tech|svc|feat)=([\w-]+)/);
+      if (m) ({tech: openTech, svc: openSvc, feat: openFeat})[m[1]](m[2]);
+    });
+    setInterval(() => load(false), 60000);
+  </script>
+</body>
+</html>
