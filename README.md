@@ -81,6 +81,7 @@ VM: curl -fsSL <서버>/join/install.sh | sudo bash -s -- t5-vm2 ◀────
 ```
 
 - 가입 화면은 권한 없는 계정 · 127.0.0.1 · TLS 는 앞단 nginx.
+- 서버 준비 · 팀원 가입 · 문제 해결 · 명단 운영 절차: [`docs/VPN_JOIN.md`](docs/VPN_JOIN.md)
 - PBKDF2-SHA256 310,000회 · 없는 계정도 같은 시간 · 실패 사유 비공개 · 계정 5회 실패 잠금 · IP 당 15분 10회 실패 → 429 · 세션 8시간(HttpOnly · Secure · SameSite=Strict, 비밀번호가 바뀌면 끊김) · POST Origin 확인 · CSP · 모든 시도 기록.
 
 ### 1-4. 통합 관제 (`dashboard/` + `sites/` + `cloud/`)
